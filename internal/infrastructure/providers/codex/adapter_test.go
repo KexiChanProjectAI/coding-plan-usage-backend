@@ -122,9 +122,24 @@ func TestPrimaryWindowOnly(t *testing.T) {
 		t.Fatal("expected 5H tier to be present")
 	}
 
+	// With backfill, 1W and 1M are always present (with zero values)
 	_, has1W := snapshot.Quotas[domain.Tier1W]
-	if has1W {
-		t.Error("expected 1W tier to be omitted when secondary_window is absent")
+	if !has1W {
+		t.Fatal("expected 1W tier to be present (backfilled)")
+	}
+	_, has1M := snapshot.Quotas[domain.Tier1M]
+	if !has1M {
+		t.Fatal("expected 1M tier to be present (backfilled)")
+	}
+
+	// Verify the backfilled tiers have zero values
+	if snapshot.Quotas[domain.Tier1W].Used != 0 || snapshot.Quotas[domain.Tier1W].Total != 100 {
+		t.Errorf("expected 1W backfilled with Used=0, Total=100, got Used=%d, Total=%d",
+			snapshot.Quotas[domain.Tier1W].Used, snapshot.Quotas[domain.Tier1W].Total)
+	}
+	if snapshot.Quotas[domain.Tier1M].Used != 0 || snapshot.Quotas[domain.Tier1M].Total != 100 {
+		t.Errorf("expected 1M backfilled with Used=0, Total=100, got Used=%d, Total=%d",
+			snapshot.Quotas[domain.Tier1M].Used, snapshot.Quotas[domain.Tier1M].Total)
 	}
 }
 
@@ -164,8 +179,9 @@ func TestUnmappableAdditionalLimit(t *testing.T) {
 		t.Fatal("expected 5H tier to be present")
 	}
 
-	if len(snapshot.Quotas) != 1 {
-		t.Errorf("expected only 1 tier (5H), got %d", len(snapshot.Quotas))
+	// With backfill, all 3 canonical tiers are present
+	if len(snapshot.Quotas) != 3 {
+		t.Errorf("expected 3 tiers (5H + backfilled 1W + backfilled 1M), got %d", len(snapshot.Quotas))
 	}
 }
 
@@ -242,8 +258,25 @@ func TestNullUsedPercentWithWindow(t *testing.T) {
 	if tier5H.Used != 0 {
 		t.Errorf("expected used 0 when used_percent is null, got %d", tier5H.Used)
 	}
-	if tier5H.Total != 0 {
-		t.Errorf("expected total 0 when used_percent is null, got %d", tier5H.Total)
+	if tier5H.Total != 100 {
+		t.Errorf("expected total 100 when used_percent is null with window (percentage contract), got %d", tier5H.Total)
+	}
+
+	// 1W and 1M are backfilled with Total=100, Used=0, ResetAt=zero
+	tier1W, ok := snapshot.Quotas[domain.Tier1W]
+	if !ok {
+		t.Fatal("expected 1W tier to be backfilled")
+	}
+	if tier1W.Total != 100 {
+		t.Errorf("expected 1W backfilled with Total=100, got %d", tier1W.Total)
+	}
+
+	tier1M, ok := snapshot.Quotas[domain.Tier1M]
+	if !ok {
+		t.Fatal("expected 1M tier to be backfilled")
+	}
+	if tier1M.Total != 100 {
+		t.Errorf("expected 1M backfilled with Total=100, got %d", tier1M.Total)
 	}
 }
 
@@ -339,8 +372,22 @@ func TestNoRateLimits(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if len(snapshot.Quotas) != 0 {
-		t.Errorf("expected empty quotas, got %d tiers", len(snapshot.Quotas))
+	// With backfill, all 3 canonical tiers are always present with zero values
+	if len(snapshot.Quotas) != 3 {
+		t.Errorf("expected 3 backfilled tiers, got %d", len(snapshot.Quotas))
+	}
+
+	// Verify all tiers are backfilled with correct zero values
+	for _, tier := range []domain.Tier{domain.Tier5H, domain.Tier1W, domain.Tier1M} {
+		q, ok := snapshot.Quotas[tier]
+		if !ok {
+			t.Errorf("expected tier %s to be present (backfilled)", tier)
+			continue
+		}
+		if q.Used != 0 || q.Total != 100 {
+			t.Errorf("expected tier %s backfilled with Used=0, Total=100, got Used=%d, Total=%d",
+				tier, q.Used, q.Total)
+		}
 	}
 }
 
@@ -379,7 +426,57 @@ func TestPlanTypeAndCreditsNotLeaked(t *testing.T) {
 		t.Fatal("expected 5H tier to be present")
 	}
 
-	if len(snapshot.Quotas) != 1 {
-		t.Errorf("expected only 1 tier (5H), got %d - plan_type/credits/rate_limit_reached_type should not create tiers", len(snapshot.Quotas))
+	// plan_type/credits/rate_limit_reached_type do not create extra tiers beyond the actual rate limits,
+	// but backfill ensures all 3 canonical tiers are present
+	if len(snapshot.Quotas) != 3 {
+		t.Errorf("expected 3 tiers (5H + backfilled 1W + 1M), got %d", len(snapshot.Quotas))
+	}
+}
+
+func TestCodexBackfillsMissingTiers(t *testing.T) {
+	server := httpmock.New()
+	defer server.Close()
+
+	server.SetResponse("/wham/usage", http.StatusOK, map[string]interface{}{
+		"rate_limit": map[string]interface{}{
+			"primary_window": map[string]interface{}{
+				"used_percent":         30.0,
+				"limit_window_seconds": int64(18000),
+				"reset_at":             int64(1745270400),
+			},
+		},
+	})
+
+	adapter := New("codex", server.URL(), "test-token")
+	snapshot, err := adapter.Fetch(context.Background())
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	// Verify all 3 canonical tiers are present
+	for _, tier := range []domain.Tier{domain.Tier5H, domain.Tier1W, domain.Tier1M} {
+		_, ok := snapshot.Quotas[tier]
+		if !ok {
+			t.Errorf("expected tier %s to be present (backfilled)", tier)
+		}
+	}
+
+	// Verify 5H has the actual values from the response
+	tier5H := snapshot.Quotas[domain.Tier5H]
+	if tier5H.Used != 30 {
+		t.Errorf("expected 5H Used=30, got %d", tier5H.Used)
+	}
+	if tier5H.Total != 100 {
+		t.Errorf("expected 5H Total=100, got %d", tier5H.Total)
+	}
+
+	// Verify backfilled tiers have zero values
+	for _, tier := range []domain.Tier{domain.Tier1W, domain.Tier1M} {
+		q := snapshot.Quotas[tier]
+		if q.Used != 0 || q.Total != 100 {
+			t.Errorf("expected tier %s backfilled with Used=0, Total=100, got Used=%d, Total=%d",
+				tier, q.Used, q.Total)
+		}
 	}
 }

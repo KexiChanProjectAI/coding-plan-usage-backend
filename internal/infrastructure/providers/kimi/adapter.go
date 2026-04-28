@@ -94,9 +94,11 @@ func (a *Adapter) Fetch(ctx context.Context) (domain.AccountSnapshot, error) {
 
 		// Determine tier based on reset time
 		tier := inferTierFromResetTime(resetAt)
+		used := limit - remaining
+		normalizedUsed := domain.NormalizeToPercent(used, limit)
 		snapshot.AddQuota(tier, domain.QuotaTier{
-			Used:   limit - remaining,
-			Total:  limit,
+			Used:   normalizedUsed,
+			Total:  100,
 			ResetAt: resetAt,
 		})
 	}
@@ -130,12 +132,17 @@ func (a *Adapter) Fetch(ctx context.Context) (domain.AccountSnapshot, error) {
 			}
 		}
 
+		used := limitVal - remainingVal
+		normalizedUsed := domain.NormalizeToPercent(used, limitVal)
 		snapshot.AddQuota(tier, domain.QuotaTier{
-			Used:   limitVal - remainingVal,
-			Total:  limitVal,
+			Used:   normalizedUsed,
+			Total:  100,
 			ResetAt: resetAt,
 		})
 	}
+
+	// Backfill missing canonical tiers with default values
+	snapshot.Quotas = domain.BackfillCanonicalTiers(snapshot.Quotas)
 
 	return *snapshot, nil
 }
@@ -212,12 +219,43 @@ type APIResponse struct {
 	TotalQuota TotalQuota `json:"totalQuota,omitempty"`
 }
 
+// Membership represents membership information in the API response.
+// Level is parsed flexibly: it can be a string or an object {"name":"..."}.
+type Membership struct {
+	Level string `json:"-"`
+}
+
+// UnmarshalJSON implements custom unmarshalling for Membership to handle
+// both string and object shapes for the "level" field.
+func (m *Membership) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if levelData, ok := raw["level"]; ok {
+		// Try string first
+		var levelStr string
+		if err := json.Unmarshal(levelData, &levelStr); err == nil {
+			m.Level = levelStr
+		} else {
+			// Try object with "name" field
+			var levelObj struct {
+				Name string `json:"name"`
+			}
+			if err := json.Unmarshal(levelData, &levelObj); err == nil {
+				m.Level = levelObj.Name
+			}
+		}
+	}
+	return nil
+}
+
 // User represents user information in the API response.
 type User struct {
-	UserID     *string   `json:"userId,omitempty"`
-	Region     *string   `json:"region,omitempty"`
-	Membership *string   `json:"membership,omitempty"`
-	BusinessID *string   `json:"businessId,omitempty"`
+	UserID     *string     `json:"userId,omitempty"`
+	Region     *string     `json:"region,omitempty"`
+	Membership *Membership `json:"membership,omitempty"`
+	BusinessID *string     `json:"businessId,omitempty"`
 }
 
 // Usage represents usage quota information.

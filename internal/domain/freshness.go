@@ -34,6 +34,10 @@ func Freshness(snapshot AccountSnapshot, maxStaleDuration time.Duration) map[Tie
 			result[tier] = Staleness{IsStale: false}
 			continue
 		}
+		if quota.ResetAt.IsZero() {
+			result[tier] = Staleness{IsStale: false}
+			continue
+		}
 		tierIsStale := lastSync.Sub(quota.ResetAt) > maxStaleDuration
 		result[tier] = Staleness{
 			IsStale: tierIsStale,

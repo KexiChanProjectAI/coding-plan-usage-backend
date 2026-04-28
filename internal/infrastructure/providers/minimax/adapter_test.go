@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/quotahub/ucpqa/internal/domain"
 	"github.com/quotahub/ucpqa/internal/domain/provider"
@@ -22,7 +23,7 @@ func TestFetchQuotaSuccess(t *testing.T) {
 				"remains_time":                21600000,
 				"current_interval_total_count": 100,
 				"current_interval_usage_count": 30,
-				"model_name":                  "MiniMax-M2",
+				"model_name":                  "coding-plan-MiniMax-M2",
 				"current_weekly_total_count":   500,
 				"current_weekly_usage_count":   150,
 				"weekly_start_time":            1744560000000,
@@ -51,8 +52,8 @@ func TestFetchQuotaSuccess(t *testing.T) {
 	if !ok {
 		t.Fatal("expected 5H tier to be present")
 	}
-	if tier5H.Used != 70 {
-		t.Errorf("expected used 70 (100-30), got %d", tier5H.Used)
+	if tier5H.Used != 30 {
+		t.Errorf("expected used 30 (30%% of 100), got %d", tier5H.Used)
 	}
 	if tier5H.Total != 100 {
 		t.Errorf("expected total 100, got %d", tier5H.Total)
@@ -62,11 +63,22 @@ func TestFetchQuotaSuccess(t *testing.T) {
 	if !ok {
 		t.Fatal("expected 1W tier to be present")
 	}
-	if tier1W.Used != 350 {
-		t.Errorf("expected used 350 (500-150), got %d", tier1W.Used)
+	if tier1W.Used != 30 {
+		t.Errorf("expected used 30 (150/500 = 30%%), got %d", tier1W.Used)
 	}
-	if tier1W.Total != 500 {
-		t.Errorf("expected total 500, got %d", tier1W.Total)
+	if tier1W.Total != 100 {
+		t.Errorf("expected total 100, got %d", tier1W.Total)
+	}
+
+	tier1M, ok := snapshot.Quotas[domain.Tier1M]
+	if !ok {
+		t.Fatal("expected 1M tier to be backfilled")
+	}
+	if tier1M.Used != 0 {
+		t.Errorf("expected 1M used 0, got %d", tier1M.Used)
+	}
+	if tier1M.Total != 100 {
+		t.Errorf("expected 1M total 100, got %d", tier1M.Total)
 	}
 }
 
@@ -82,6 +94,7 @@ func TestCurrentIntervalUsageCountMeansRemaining(t *testing.T) {
 				"current_weekly_total_count":   0,
 				"current_weekly_usage_count":   0,
 				"end_time":                     1745186400000,
+				"model_name":                   "coding-plan-test",
 			},
 		},
 		"base_resp": map[string]interface{}{
@@ -102,9 +115,12 @@ func TestCurrentIntervalUsageCountMeansRemaining(t *testing.T) {
 		t.Fatal("expected 5H tier to be present")
 	}
 
-	expectedUsed := int64(100 - 25)
+	expectedUsed := int64(25) // 25% of 100
 	if tier5H.Used != expectedUsed {
-		t.Errorf("expected used = total - remaining = 100 - 25 = 75, got %d", tier5H.Used)
+		t.Errorf("expected used = 25%% of 100 = 25, got %d", tier5H.Used)
+	}
+	if tier5H.Total != 100 {
+		t.Errorf("expected total 100, got %d", tier5H.Total)
 	}
 }
 
@@ -117,10 +133,11 @@ func TestWeeklyQuotaOmittedWhenZero(t *testing.T) {
 			{
 				"current_interval_total_count": 100,
 				"current_interval_usage_count": 50,
-				"current_weekly_total_count":   0,
+				"current_weekly_total_count":   500,
 				"current_weekly_usage_count":   0,
 				"end_time":                     1745186400000,
-				"weekly_end_time":              0,
+				"weekly_end_time":              1745164800000,
+				"model_name":                   "coding-plan-test",
 			},
 		},
 		"base_resp": map[string]interface{}{
@@ -141,9 +158,15 @@ func TestWeeklyQuotaOmittedWhenZero(t *testing.T) {
 		t.Fatal("expected 5H tier to be present")
 	}
 
-	_, has1W := snapshot.Quotas[domain.Tier1W]
-	if has1W {
-		t.Error("expected 1W tier to be omitted when current_weekly_total_count is 0")
+	tier1W, has1W := snapshot.Quotas[domain.Tier1W]
+	if !has1W {
+		t.Fatal("expected 1W tier to be present when current_weekly_total_count > 0")
+	}
+	if tier1W.Used != 0 {
+		t.Errorf("expected 1W used 0, got %d", tier1W.Used)
+	}
+	if tier1W.Total != 100 {
+		t.Errorf("expected 1W total 100, got %d", tier1W.Total)
 	}
 }
 
@@ -240,8 +263,38 @@ func TestNoModelRemains(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if len(snapshot.Quotas) != 0 {
-		t.Errorf("expected empty quotas, got %d tiers", len(snapshot.Quotas))
+	// Should have backfilled tiers even with no models
+	tier5H, has5H := snapshot.Quotas[domain.Tier5H]
+	if !has5H {
+		t.Fatal("expected 5H tier to be backfilled")
+	}
+	if tier5H.Used != 0 {
+		t.Errorf("expected 5H used 0, got %d", tier5H.Used)
+	}
+	if tier5H.Total != 100 {
+		t.Errorf("expected 5H total 100, got %d", tier5H.Total)
+	}
+
+	tier1W, has1W := snapshot.Quotas[domain.Tier1W]
+	if !has1W {
+		t.Fatal("expected 1W tier to be backfilled")
+	}
+	if tier1W.Used != 0 {
+		t.Errorf("expected 1W used 0, got %d", tier1W.Used)
+	}
+	if tier1W.Total != 100 {
+		t.Errorf("expected 1W total 100, got %d", tier1W.Total)
+	}
+
+	tier1M, has1M := snapshot.Quotas[domain.Tier1M]
+	if !has1M {
+		t.Fatal("expected 1M tier to be backfilled")
+	}
+	if tier1M.Used != 0 {
+		t.Errorf("expected 1M used 0, got %d", tier1M.Used)
+	}
+	if tier1M.Total != 100 {
+		t.Errorf("expected 1M total 100, got %d", tier1M.Total)
 	}
 }
 
@@ -257,14 +310,16 @@ func TestMultipleModelRemains(t *testing.T) {
 				"current_weekly_total_count":   0,
 				"current_weekly_usage_count":   0,
 				"end_time":                     1745186400000,
+				"model_name":                   "coding-plan-model1",
 			},
 			{
 				"current_interval_total_count": 200,
-				"current_interval_usage_count": 50,
+				"current_interval_usage_count": 100,
 				"current_weekly_total_count":   1000,
 				"current_weekly_usage_count":   300,
 				"end_time":                     1745186400000,
 				"weekly_end_time":              1745164800000,
+				"model_name":                   "coding-plan-model2",
 			},
 		},
 		"base_resp": map[string]interface{}{
@@ -280,13 +335,147 @@ func TestMultipleModelRemains(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	_, has5H := snapshot.Quotas[domain.Tier5H]
+	tier5H, has5H := snapshot.Quotas[domain.Tier5H]
 	if !has5H {
 		t.Fatal("expected 5H tier to be present")
 	}
+	// Highest 5H percent: model2 has 100/200 = 50%, model1 has 20/100 = 20%
+	if tier5H.Used != 50 {
+		t.Errorf("expected 5H used 50 (highest of 20%% and 50%%), got %d", tier5H.Used)
+	}
+	if tier5H.Total != 100 {
+		t.Errorf("expected 5H total 100, got %d", tier5H.Total)
+	}
 
-	_, has1W := snapshot.Quotas[domain.Tier1W]
+	tier1W, has1W := snapshot.Quotas[domain.Tier1W]
 	if !has1W {
 		t.Fatal("expected 1W tier to be present since at least one model has weekly quota")
+	}
+	// Highest 1W percent: model2 has 300/1000 = 30%
+	if tier1W.Used != 30 {
+		t.Errorf("expected 1W used 30, got %d", tier1W.Used)
+	}
+	if tier1W.Total != 100 {
+		t.Errorf("expected 1W total 100, got %d", tier1W.Total)
+	}
+
+	// Check backfilled 1M tier
+	tier1M, has1M := snapshot.Quotas[domain.Tier1M]
+	if !has1M {
+		t.Fatal("expected 1M tier to be backfilled")
+	}
+	if tier1M.Used != 0 {
+		t.Errorf("expected 1M used 0, got %d", tier1M.Used)
+	}
+	if tier1M.Total != 100 {
+		t.Errorf("expected 1M total 100, got %d", tier1M.Total)
+	}
+}
+
+func TestNonCodingPlanModelsIgnored(t *testing.T) {
+	server := httpmock.New()
+	defer server.Close()
+
+	server.SetResponse("/v1/api/openplatform/coding_plan/remains", http.StatusOK, map[string]interface{}{
+		"model_remains": []map[string]interface{}{
+			{
+				"current_interval_total_count": 100,
+				"current_interval_usage_count": 50,
+				"current_weekly_total_count":   500,
+				"current_weekly_usage_count":   250,
+				"end_time":                     1745186400000,
+				"weekly_end_time":              1745164800000,
+				"model_name":                   "MiniMax-M2", // No coding-plan prefix
+			},
+		},
+		"base_resp": map[string]interface{}{
+			"status_code": 0,
+			"status_msg":  "success",
+		},
+	})
+
+	adapter := New("minimax", server.URL(), "test-token")
+	snapshot, err := adapter.Fetch(context.Background())
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	// Should have backfilled tiers with 0% since no coding-plan models
+	tier5H, has5H := snapshot.Quotas[domain.Tier5H]
+	if !has5H {
+		t.Fatal("expected 5H tier to be backfilled")
+	}
+	if tier5H.Used != 0 {
+		t.Errorf("expected 5H used 0, got %d", tier5H.Used)
+	}
+	if tier5H.Total != 100 {
+		t.Errorf("expected 5H total 100, got %d", tier5H.Total)
+	}
+
+	tier1W, has1W := snapshot.Quotas[domain.Tier1W]
+	if !has1W {
+		t.Fatal("expected 1W tier to be backfilled")
+	}
+	if tier1W.Used != 0 {
+		t.Errorf("expected 1W used 0, got %d", tier1W.Used)
+	}
+	if tier1W.Total != 100 {
+		t.Errorf("expected 1W total 100, got %d", tier1W.Total)
+	}
+}
+
+func TestResetAtSetForValidTiers(t *testing.T) {
+	server := httpmock.New()
+	defer server.Close()
+
+	endTime := int64(1745186400000) // 2025-04-28 10:00:00 UTC
+	weeklyEndTime := int64(1745164800000) // 2025-04-28 04:00:00 UTC
+
+	server.SetResponse("/v1/api/openplatform/coding_plan/remains", http.StatusOK, map[string]interface{}{
+		"model_remains": []map[string]interface{}{
+			{
+				"current_interval_total_count": 100,
+				"current_interval_usage_count": 30,
+				"current_weekly_total_count":   500,
+				"current_weekly_usage_count":   150,
+				"end_time":                     endTime,
+				"weekly_end_time":              weeklyEndTime,
+				"model_name":                   "coding-plan-test",
+			},
+		},
+		"base_resp": map[string]interface{}{
+			"status_code": 0,
+			"status_msg":  "success",
+		},
+	})
+
+	adapter := New("minimax", server.URL(), "test-token")
+	snapshot, err := adapter.Fetch(context.Background())
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	tier5H, ok := snapshot.Quotas[domain.Tier5H]
+	if !ok {
+		t.Fatal("expected 5H tier to be present")
+	}
+	if tier5H.ResetAt.IsZero() {
+		t.Error("expected 5H reset_at to be set")
+	}
+	if !tier5H.ResetAt.Equal(time.UnixMilli(endTime)) {
+		t.Errorf("expected 5H reset_at %v, got %v", time.UnixMilli(endTime), tier5H.ResetAt)
+	}
+
+	tier1W, ok := snapshot.Quotas[domain.Tier1W]
+	if !ok {
+		t.Fatal("expected 1W tier to be present")
+	}
+	if tier1W.ResetAt.IsZero() {
+		t.Error("expected 1W reset_at to be set")
+	}
+	if !tier1W.ResetAt.Equal(time.UnixMilli(weeklyEndTime)) {
+		t.Errorf("expected 1W reset_at %v, got %v", time.UnixMilli(weeklyEndTime), tier1W.ResetAt)
 	}
 }

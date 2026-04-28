@@ -251,6 +251,29 @@ func TestStoreConcurrentUpdates(t *testing.T) {
 	}
 }
 
+func TestStoreOmitStalePreservesZeroResetAt(t *testing.T) {
+	s := NewWithConfig(10 * time.Minute)
+
+	now := time.Now()
+	snap := domain.AccountSnapshot{
+		Platform:     "test",
+		AccountAlias: "test",
+		Quotas: map[domain.Tier]domain.QuotaTier{
+			domain.Tier5H: {Used: 10, Total: 100, ResetAt: now},
+			domain.Tier1W: {Used: 0, Total: 100, ResetAt: time.Time{}},
+		},
+	}
+
+	updated := s.Update(snap)
+
+	if _, ok := updated.Quotas[domain.Tier1W]; !ok {
+		t.Error("zero-ResetAt tier should be preserved")
+	}
+	if updated.Quotas[domain.Tier1W].Used != 0 || updated.Quotas[domain.Tier1W].Total != 100 {
+		t.Errorf("zero-ResetAt tier values changed unexpectedly")
+	}
+}
+
 func TestStoreImmutability(t *testing.T) {
 	s := New()
 

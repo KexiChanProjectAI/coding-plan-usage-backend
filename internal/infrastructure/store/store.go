@@ -83,6 +83,9 @@ func (s *Store) omitStaleQuotas(snapshot domain.AccountSnapshot, now time.Time) 
 	}
 
 	for tier, quota := range snapshot.Quotas {
+		if quota.ResetAt.IsZero() {
+			continue
+		}
 		if now.Sub(quota.ResetAt) > s.maxStaleDuration {
 			delete(snapshot.Quotas, tier)
 		}

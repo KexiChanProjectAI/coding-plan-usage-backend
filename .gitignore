@@ -30,6 +30,7 @@ Thumbs.db
 
 # Config with secrets (use config.example.yaml instead)
 config.yaml
+prod-config.yaml
 
 # Sisyphus working files
 .sisyphus/

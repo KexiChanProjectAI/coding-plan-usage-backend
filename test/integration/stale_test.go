@@ -239,8 +239,18 @@ func TestStaleExpiryOmitsTier(t *testing.T) {
 	}
 
 	assert.Equal(t, "healthy", accounts["codex"]["status"], "codex should remain healthy after stale tier omission")
-	_, hasCodexQuotas := accounts["codex"]["quotas"]
-	assert.False(t, hasCodexQuotas, "codex stale tiers should be omitted from the snapshot")
+	// With backfill, codex still has quotas (backfilled 1W/1M with zero ResetAt are preserved by omitStaleQuotas)
+	// but the stale 5H tier is omitted
+	codexQuotas, hasCodexQuotas := accounts["codex"]["quotas"].(map[string]interface{})
+	assert.True(t, hasCodexQuotas, "codex should have quotas from backfill")
+	if hasCodexQuotas {
+		_, has5H := codexQuotas["5H"]
+		assert.False(t, has5H, "codex 5H tier should be omitted (stale)")
+		_, has1W := codexQuotas["1W"]
+		assert.True(t, has1W, "codex 1W tier should be present (backfilled with zero ResetAt)")
+		_, has1M := codexQuotas["1M"]
+		assert.True(t, has1M, "codex 1M tier should be present (backfilled with zero ResetAt)")
+	}
 	for _, prov := range []string{"kimi", "minimax", "zai", "zhipu"} {
 		assert.Equal(t, "healthy", accounts[prov]["status"], "provider %q should be healthy", prov)
 	}

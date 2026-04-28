@@ -319,6 +319,20 @@ func TestHealthyFullStackUsageSnapshot(t *testing.T) {
 		assert.True(t, account["version"].(float64) > 0, "provider %q should have version > 0", prov)
 	}
 
+	for _, prov := range expectedProviders {
+		account := accounts[prov]
+		quotas, ok := account["quotas"].(map[string]interface{})
+		require.True(t, ok, "provider %q quotas should be a map", prov)
+
+		for _, tier := range []string{"5H", "1W", "1M"} {
+			tierData, hasTier := quotas[tier].(map[string]interface{})
+			assert.True(t, hasTier, "provider %q should have tier %s", prov, tier)
+			if hasTier {
+				assert.Equal(t, float64(100), tierData["total"], "provider %q tier %s should have total=100", prov, tier)
+			}
+		}
+	}
+
 	// Clean up
 	cancel()
 

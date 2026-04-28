@@ -103,6 +103,8 @@ func (a *Adapter) Fetch(ctx context.Context) (domain.AccountSnapshot, error) {
 		snapshot.AddQuota(domain.Tier1M, *tier)
 	}
 
+	snapshot.Quotas = domain.BackfillCanonicalTiers(snapshot.Quotas)
+
 	return *snapshot, nil
 }
 
@@ -129,18 +131,16 @@ func (a *Adapter) windowToTier(window *RateLimitWindow, tierHint domain.Tier) *d
 
 	_ = tierHint // tierHint used by caller to select which tier to populate
 
-	var used, total int64
+	var used int64
+	var total int64 = 100
 	if window.UsedPercent != nil {
-		if window.LimitWindowSeconds != nil {
-			total = 100
-			used = total * int64(*window.UsedPercent) / 100
-		} else {
-			used = 0
-			total = 0
+		pct := *window.UsedPercent
+		if pct < 0 {
+			pct = 0
+		} else if pct > 100 {
+			pct = 100
 		}
-	} else {
-		used = 0
-		total = 0
+		used = int64(pct)
 	}
 
 	resetAt := time.Time{}

@@ -57,11 +57,11 @@ func TestFetchQuotaSuccessZAI(t *testing.T) {
 	if !ok {
 		t.Fatal("expected 5H tier to be present")
 	}
-	if tier5H.Used != usage {
-		t.Errorf("expected used %d, got %d", usage, tier5H.Used)
+	if tier5H.Used != int64(percentage) {
+		t.Errorf("expected used %d from percentage field, got %d", percentage, tier5H.Used)
 	}
-	if tier5H.Total != currentValue {
-		t.Errorf("expected total %d, got %d", currentValue, tier5H.Total)
+	if tier5H.Total != 100 {
+		t.Errorf("expected total 100 when percentage is present, got %d", tier5H.Total)
 	}
 }
 
@@ -71,6 +71,7 @@ func TestFetchQuotaSuccessZhipu(t *testing.T) {
 
 	usage := int64(50)
 	currentValue := int64(200)
+	percentage := 25
 	nextResetTime := int64(1745186400000)
 
 	server.SetResponse("/api/monitor/usage/quota/limit", http.StatusOK, map[string]interface{}{
@@ -110,11 +111,11 @@ func TestFetchQuotaSuccessZhipu(t *testing.T) {
 	if !ok {
 		t.Fatal("expected 1M tier to be present")
 	}
-	if tier1M.Used != usage {
-		t.Errorf("expected used %d, got %d", usage, tier1M.Used)
+	if tier1M.Used != int64(percentage) {
+		t.Errorf("expected used %d from percentage field, got %d", percentage, tier1M.Used)
 	}
-	if tier1M.Total != currentValue {
-		t.Errorf("expected total %d, got %d", currentValue, tier1M.Total)
+	if tier1M.Total != 100 {
+		t.Errorf("expected total 100 when percentage is present, got %d", tier1M.Total)
 	}
 }
 
@@ -220,14 +221,43 @@ func TestUnitMapping(t *testing.T) {
 		t.Fatal("expected 5H tier to be present for unit=3")
 	}
 
+	// Verify 5H uses normalized percentage (usage/currentValue * 100 = 10/50*100 = 20)
+	tier5H := snapshot.Quotas[domain.Tier5H]
+	if tier5H.Total != 100 {
+		t.Errorf("expected 5H total 100, got %d", tier5H.Total)
+	}
+	if tier5H.Used != domain.NormalizeToPercent(10, 50) {
+		t.Errorf("expected 5H used %d from usage/currentValue, got %d", domain.NormalizeToPercent(10, 50), tier5H.Used)
+	}
+
 	_, has1M := snapshot.Quotas[domain.Tier1M]
 	if !has1M {
 		t.Fatal("expected 1M tier to be present for unit=5")
 	}
 
+	// Verify 1M uses normalized percentage (usage/currentValue * 100 = 100/500*100 = 20)
+	tier1M := snapshot.Quotas[domain.Tier1M]
+	if tier1M.Total != 100 {
+		t.Errorf("expected 1M total 100, got %d", tier1M.Total)
+	}
+	if tier1M.Used != domain.NormalizeToPercent(100, 500) {
+		t.Errorf("expected 1M used %d from usage/currentValue, got %d", domain.NormalizeToPercent(100, 500), tier1M.Used)
+	}
+
 	_, has1W := snapshot.Quotas[domain.Tier1W]
-	if has1W {
-		t.Error("expected 1W tier to be omitted for unit=4 (unsupported)")
+	if !has1W {
+		t.Fatal("expected 1W tier to be backfilled since it's a canonical tier")
+	}
+	// 1W should be backfilled with defaults since unit=4 is unsupported
+	tier1W := snapshot.Quotas[domain.Tier1W]
+	if tier1W.Used != 0 {
+		t.Errorf("expected 1W used=0 (backfilled), got %d", tier1W.Used)
+	}
+	if tier1W.Total != 100 {
+		t.Errorf("expected 1W total=100 (backfilled), got %d", tier1W.Total)
+	}
+	if !tier1W.ResetAt.IsZero() {
+		t.Errorf("expected 1W resetAt=zero (backfilled), got %v", tier1W.ResetAt)
 	}
 }
 
@@ -264,8 +294,12 @@ func TestUsedCalculationFromUsageField(t *testing.T) {
 	}
 
 	tier5H := snapshot.Quotas[domain.Tier5H]
-	if tier5H.Used != usage {
-		t.Errorf("expected used to be taken from usage field: %d, got %d", usage, tier5H.Used)
+	expectedUsed := domain.NormalizeToPercent(usage, currentValue)
+	if tier5H.Used != expectedUsed {
+		t.Errorf("expected used = NormalizeToPercent(%d, %d) = %d, got %d", usage, currentValue, expectedUsed, tier5H.Used)
+	}
+	if tier5H.Total != 100 {
+		t.Errorf("expected total 100, got %d", tier5H.Total)
 	}
 }
 
@@ -302,9 +336,12 @@ func TestUsedCalculationFromCurrentValueMinusRemaining(t *testing.T) {
 	}
 
 	tier5H := snapshot.Quotas[domain.Tier5H]
-	expectedUsed := currentValue - remaining
+	expectedUsed := domain.NormalizeToPercent(currentValue-remaining, currentValue)
 	if tier5H.Used != expectedUsed {
-		t.Errorf("expected used = currentValue - remaining = %d, got %d", expectedUsed, tier5H.Used)
+		t.Errorf("expected used = NormalizeToPercent(%d, %d) = %d, got %d", currentValue-remaining, currentValue, expectedUsed, tier5H.Used)
+	}
+	if tier5H.Total != 100 {
+		t.Errorf("expected total 100, got %d", tier5H.Total)
 	}
 }
 
@@ -379,8 +416,27 @@ func TestEmptyLimits(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if len(snapshot.Quotas) != 0 {
-		t.Errorf("expected empty quotas, got %d tiers", len(snapshot.Quotas))
+	// All three canonical tiers should be backfilled
+	if len(snapshot.Quotas) != 3 {
+		t.Errorf("expected 3 backfilled tiers (5H, 1W, 1M), got %d tiers", len(snapshot.Quotas))
+	}
+
+	// All three canonical tiers should be backfilled with Used=0, Total=100, ResetAt=zero
+	for _, tier := range []domain.Tier{domain.Tier5H, domain.Tier1W, domain.Tier1M} {
+		qt, ok := snapshot.Quotas[tier]
+		if !ok {
+			t.Errorf("expected backfilled tier %s to be present", tier)
+			continue
+		}
+		if qt.Used != 0 {
+			t.Errorf("expected tier %s used=0, got %d", tier, qt.Used)
+		}
+		if qt.Total != 100 {
+			t.Errorf("expected tier %s total=100, got %d", tier, qt.Total)
+		}
+		if !qt.ResetAt.IsZero() {
+			t.Errorf("expected tier %s resetAt=zero, got %v", tier, qt.ResetAt)
+		}
 	}
 }
 
@@ -424,14 +480,20 @@ func TestMultipleTiersZAI(t *testing.T) {
 	if !has5H {
 		t.Fatal("expected 5H tier to be present")
 	}
+	if snapshot.Quotas[domain.Tier5H].Total != 100 {
+		t.Errorf("expected 5H total 100, got %d", snapshot.Quotas[domain.Tier5H].Total)
+	}
 
 	_, has1M := snapshot.Quotas[domain.Tier1M]
 	if !has1M {
 		t.Fatal("expected 1M tier to be present")
 	}
+	if snapshot.Quotas[domain.Tier1M].Total != 100 {
+		t.Errorf("expected 1M total 100, got %d", snapshot.Quotas[domain.Tier1M].Total)
+	}
 }
 
-func TestPercentageIgnored(t *testing.T) {
+func TestPercentageTakesPrecedence(t *testing.T) {
 	server := httpmock.New()
 	defer server.Close()
 
@@ -466,8 +528,203 @@ func TestPercentageIgnored(t *testing.T) {
 	}
 
 	tier5H := snapshot.Quotas[domain.Tier5H]
-	computedUsed := currentValue - remaining
-	if tier5H.Used != computedUsed {
-		t.Errorf("expected used to be computed from currentValue-remaining (%d), not from percentage (%d)", computedUsed, int64(percentage))
+	if tier5H.Used != int64(percentage) {
+		t.Errorf("expected used to be from percentage (%d), not computed (%d)", percentage, tier5H.Used)
+	}
+	if tier5H.Total != 100 {
+		t.Errorf("expected total 100 when percentage is present, got %d", tier5H.Total)
+	}
+}
+
+func TestPercentagePrecedenceWithNilCurrentValue(t *testing.T) {
+	server := httpmock.New()
+	defer server.Close()
+
+	percentage := 75
+
+	server.SetResponse("/api/monitor/usage/quota/limit", http.StatusOK, map[string]interface{}{
+		"code":    200,
+		"msg":     "success",
+		"success": true,
+		"data": map[string]interface{}{
+			"limits": []map[string]interface{}{
+				{
+					"type":       "TOKEN_LIMIT",
+					"unit":       3,
+					"percentage": percentage,
+				},
+			},
+			"level": "standard",
+		},
+	})
+
+	adapter := NewZAI("zai", server.URL(), "test-token")
+	snapshot, err := adapter.Fetch(context.Background())
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	tier5H := snapshot.Quotas[domain.Tier5H]
+	if tier5H.Used != int64(percentage) {
+		t.Errorf("expected used from percentage (%d), got %d", percentage, tier5H.Used)
+	}
+	if tier5H.Total != 100 {
+		t.Errorf("expected total 100, got %d", tier5H.Total)
+	}
+}
+
+func TestPercentagePrecedenceWithZeroCurrentValue(t *testing.T) {
+	server := httpmock.New()
+	defer server.Close()
+
+	percentage := 50
+
+	server.SetResponse("/api/monitor/usage/quota/limit", http.StatusOK, map[string]interface{}{
+		"code":    200,
+		"msg":     "success",
+		"success": true,
+		"data": map[string]interface{}{
+			"limits": []map[string]interface{}{
+				{
+					"type":         "TOKEN_LIMIT",
+					"unit":         3,
+					"currentValue": 0,
+					"percentage":   percentage,
+				},
+			},
+			"level": "standard",
+		},
+	})
+
+	adapter := NewZAI("zai", server.URL(), "test-token")
+	snapshot, err := adapter.Fetch(context.Background())
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	tier5H := snapshot.Quotas[domain.Tier5H]
+	if tier5H.Used != int64(percentage) {
+		t.Errorf("expected used from percentage (%d), got %d", percentage, tier5H.Used)
+	}
+	if tier5H.Total != 100 {
+		t.Errorf("expected total 100, got %d", tier5H.Total)
+	}
+}
+
+func TestZeroDenominatorSkipsTier(t *testing.T) {
+	server := httpmock.New()
+	defer server.Close()
+
+	server.SetResponse("/api/monitor/usage/quota/limit", http.StatusOK, map[string]interface{}{
+		"code":    200,
+		"msg":     "success",
+		"success": true,
+		"data": map[string]interface{}{
+			"limits": []map[string]interface{}{
+				{
+					"type":         "TOKEN_LIMIT",
+					"unit":         3,
+					"currentValue": 0,
+					"remaining":    0,
+				},
+			},
+			"level": "standard",
+		},
+	})
+
+	adapter := NewZAI("zai", server.URL(), "test-token")
+	snapshot, err := adapter.Fetch(context.Background())
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	// Tier is skipped during extraction (currentValue=0, no percentage)
+	// but backfilled as a canonical tier with defaults
+	_, has5H := snapshot.Quotas[domain.Tier5H]
+	if !has5H {
+		t.Fatal("expected 5H tier to be backfilled as canonical tier")
+	}
+	// Verify 5H has backfilled defaults, not provider values
+	tier5H := snapshot.Quotas[domain.Tier5H]
+	if tier5H.Used != 0 {
+		t.Errorf("expected 5H used=0 (backfilled), got %d", tier5H.Used)
+	}
+	if tier5H.Total != 100 {
+		t.Errorf("expected 5H total=100 (backfilled), got %d", tier5H.Total)
+	}
+	if !tier5H.ResetAt.IsZero() {
+		t.Errorf("expected 5H resetAt=zero (backfilled), got %v", tier5H.ResetAt)
+	}
+}
+
+func TestMonitorQuotaBackfillsMissingTiers(t *testing.T) {
+	server := httpmock.New()
+	defer server.Close()
+
+	server.SetResponse("/api/monitor/usage/quota/limit", http.StatusOK, map[string]interface{}{
+		"code":    200,
+		"msg":     "success",
+		"success": true,
+		"data": map[string]interface{}{
+			"limits": []map[string]interface{}{
+				{
+					"type":          "TOKEN_LIMIT",
+					"unit":          3,
+					"percentage":    25,
+					"nextResetTime": 1745186400000,
+				},
+			},
+			"level": "standard",
+		},
+	})
+
+	adapter := NewZAI("zai", server.URL(), "test-token")
+	snapshot, err := adapter.Fetch(context.Background())
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	// Verify all three canonical tiers are present
+	for _, tier := range []domain.Tier{domain.Tier5H, domain.Tier1W, domain.Tier1M} {
+		if _, ok := snapshot.Quotas[tier]; !ok {
+			t.Errorf("expected canonical tier %s to be backfilled", tier)
+		}
+	}
+
+	// Verify 5H has actual data
+	tier5H := snapshot.Quotas[domain.Tier5H]
+	if tier5H.Used != 25 {
+		t.Errorf("expected 5H used=25, got %d", tier5H.Used)
+	}
+	if tier5H.Total != 100 {
+		t.Errorf("expected 5H total=100, got %d", tier5H.Total)
+	}
+
+	// Verify 1W is backfilled with defaults
+	tier1W := snapshot.Quotas[domain.Tier1W]
+	if tier1W.Used != 0 {
+		t.Errorf("expected 1W used=0, got %d", tier1W.Used)
+	}
+	if tier1W.Total != 100 {
+		t.Errorf("expected 1W total=100, got %d", tier1W.Total)
+	}
+	if !tier1W.ResetAt.IsZero() {
+		t.Errorf("expected 1W resetAt=zero, got %v", tier1W.ResetAt)
+	}
+
+	// Verify 1M is backfilled with defaults
+	tier1M := snapshot.Quotas[domain.Tier1M]
+	if tier1M.Used != 0 {
+		t.Errorf("expected 1M used=0, got %d", tier1M.Used)
+	}
+	if tier1M.Total != 100 {
+		t.Errorf("expected 1M total=100, got %d", tier1M.Total)
+	}
+	if !tier1M.ResetAt.IsZero() {
+		t.Errorf("expected 1M resetAt=zero, got %v", tier1M.ResetAt)
 	}
 }

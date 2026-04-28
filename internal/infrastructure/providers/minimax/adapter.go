@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/quotahub/ucpqa/internal/domain"
@@ -80,23 +81,55 @@ func (a *Adapter) Fetch(ctx context.Context) (domain.AccountSnapshot, error) {
 
 	snapshot := domain.NewAccountSnapshot(a.name, "default", 0)
 
+	var highest5H, highest1W int64
+	var resetAt5H, resetAt1W time.Time
+
 	for _, model := range result.ModelRemains {
-		intervalTier := domain.QuotaTier{
-			Used:   int64(model.CurrentIntervalTotalCount - model.CurrentIntervalUsageCount),
-			Total:  int64(model.CurrentIntervalTotalCount),
-			ResetAt: time.UnixMilli(model.EndTime),
+		if !strings.HasPrefix(model.ModelName, "coding-plan") {
+			continue
 		}
-		snapshot.AddQuota(domain.Tier5H, intervalTier)
+
+		if model.CurrentIntervalTotalCount > 0 {
+			used5H := int64(model.CurrentIntervalUsageCount)
+			percent5H := domain.NormalizeToPercent(used5H, int64(model.CurrentIntervalTotalCount))
+			if percent5H > highest5H {
+				highest5H = percent5H
+			}
+			// Preserve ResetAt from any valid tier, even if usage is 0%
+			if resetAt5H.IsZero() {
+				resetAt5H = time.UnixMilli(model.EndTime)
+			}
+		}
 
 		if model.CurrentWeeklyTotalCount > 0 {
-			weeklyTier := domain.QuotaTier{
-				Used:   int64(model.CurrentWeeklyTotalCount - model.CurrentWeeklyUsageCount),
-				Total:  int64(model.CurrentWeeklyTotalCount),
-				ResetAt: time.UnixMilli(model.WeeklyEndTime),
+			used1W := int64(model.CurrentWeeklyUsageCount)
+			percent1W := domain.NormalizeToPercent(used1W, int64(model.CurrentWeeklyTotalCount))
+			if percent1W > highest1W {
+				highest1W = percent1W
 			}
-			snapshot.AddQuota(domain.Tier1W, weeklyTier)
+			// Preserve ResetAt from any valid tier, even if usage is 0%
+			if resetAt1W.IsZero() {
+				resetAt1W = time.UnixMilli(model.WeeklyEndTime)
+			}
 		}
 	}
+
+	if highest5H > 0 || !resetAt5H.IsZero() {
+		snapshot.AddQuota(domain.Tier5H, domain.QuotaTier{
+			Used:    highest5H,
+			Total:   100,
+			ResetAt: resetAt5H,
+		})
+	}
+	if highest1W > 0 || !resetAt1W.IsZero() {
+		snapshot.AddQuota(domain.Tier1W, domain.QuotaTier{
+			Used:    highest1W,
+			Total:   100,
+			ResetAt: resetAt1W,
+		})
+	}
+
+	snapshot.Quotas = domain.BackfillCanonicalTiers(snapshot.Quotas)
 
 	return *snapshot, nil
 }

@@ -113,22 +113,37 @@ func (a *Adapter) Fetch(ctx context.Context) (domain.AccountSnapshot, error) {
 		}
 
 		var used int64
-		if limit.Usage != nil {
-			// Use usage field directly if present
-			used = *limit.Usage
-		} else if limit.CurrentValue != nil && limit.Remaining != nil {
-			// Compute used from currentValue - remaining
-			used = *limit.CurrentValue - *limit.Remaining
-		} else {
-			// Cannot compute used without either usage or (currentValue and remaining)
-			continue
-		}
-
 		var total int64
-		if limit.CurrentValue != nil {
-			total = *limit.CurrentValue
+
+		if limit.Percentage != nil {
+			pct := *limit.Percentage
+			if pct < 0 {
+				pct = 0
+			} else if pct > 100 {
+				pct = 100
+			}
+			used = int64(pct)
+			total = 100
 		} else {
-			continue
+			// Try to compute used from usage or currentValue-remaining
+			if limit.Usage != nil {
+				used = *limit.Usage
+			} else if limit.CurrentValue != nil && limit.Remaining != nil {
+				used = *limit.CurrentValue - *limit.Remaining
+			} else {
+				// Cannot compute used without either usage or (currentValue and remaining)
+				continue
+			}
+
+			// Need a positive denominator to derive percentage
+			if limit.CurrentValue == nil || *limit.CurrentValue <= 0 {
+				// Zero or negative denominator: skip tier
+				continue
+			}
+
+			// Derive percentage from raw counts and emit with Total=100
+			used = domain.NormalizeToPercent(used, *limit.CurrentValue)
+			total = 100
 		}
 
 		var resetAt time.Time
@@ -137,11 +152,14 @@ func (a *Adapter) Fetch(ctx context.Context) (domain.AccountSnapshot, error) {
 		}
 
 		snapshot.AddQuota(tier, domain.QuotaTier{
-			Used:   used,
-			Total:  total,
-			ResetAt: resetAt,
+			Used:    used,
+			Total:   total,
+			ResetAt:  resetAt,
 		})
 	}
+
+	// Backfill missing canonical tiers so 5H, 1W, 1M are always present
+	snapshot.Quotas = domain.BackfillCanonicalTiers(snapshot.Quotas)
 
 	return *snapshot, nil
 }

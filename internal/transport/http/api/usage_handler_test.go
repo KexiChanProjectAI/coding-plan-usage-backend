@@ -24,8 +24,8 @@ func TestUsageHandlerReturnsSnapshot(t *testing.T) {
 		Platform:     "testplatform",
 		AccountAlias: "testalias",
 		Quotas: map[domain.Tier]domain.QuotaTier{
-			domain.Tier5H: {Used: 100, Total: 1000, ResetAt: time.Now().Add(5 * time.Hour)},
-			domain.Tier1W: {Used: 200, Total: 2000, ResetAt: time.Now().Add(7 * 24 * time.Hour)},
+			domain.Tier5H: {Used: 100, Total: 100, ResetAt: time.Now().Add(5 * time.Hour)},
+			domain.Tier1W: {Used: 200, Total: 100, ResetAt: time.Now().Add(7 * 24 * time.Hour)},
 		},
 		LastSync: time.Now(),
 		Version:  1,
@@ -57,7 +57,7 @@ func TestUsageHandlerReturnsSnapshot(t *testing.T) {
 	assert.Equal(t, domain.StatusHealthy, resp.Status)
 	assert.NotNil(t, resp.Quotas)
 	assert.Equal(t, int64(100), resp.Quotas[domain.Tier5H].Used)
-	assert.Equal(t, int64(1000), resp.Quotas[domain.Tier5H].Total)
+	assert.Equal(t, int64(100), resp.Quotas[domain.Tier5H].Total)
 }
 
 func TestUsageHandlerInitializingState(t *testing.T) {
@@ -101,7 +101,7 @@ func TestUsageHandlerDegradedStatus(t *testing.T) {
 		Platform:     "staleplatform",
 		AccountAlias: "stalelias",
 		Quotas: map[domain.Tier]domain.QuotaTier{
-			domain.Tier5H: {Used: 500, Total: 1000, ResetAt: staleResetAt},
+			domain.Tier5H: {Used: 500, Total: 100, ResetAt: staleResetAt},
 		},
 		LastSync: time.Now(),
 		Version:  1,
@@ -140,7 +140,7 @@ func TestUsageHandlerMultiplePlatforms(t *testing.T) {
 		Platform:     "platform1",
 		AccountAlias: "alias1",
 		Quotas: map[domain.Tier]domain.QuotaTier{
-			domain.Tier5H: {Used: 100, Total: 1000, ResetAt: time.Now().Add(5 * time.Hour)},
+			domain.Tier5H: {Used: 100, Total: 100, ResetAt: time.Now().Add(5 * time.Hour)},
 		},
 		LastSync: time.Now(),
 		Version:  1,
@@ -149,7 +149,7 @@ func TestUsageHandlerMultiplePlatforms(t *testing.T) {
 		Platform:     "platform2",
 		AccountAlias: "alias2",
 		Quotas: map[domain.Tier]domain.QuotaTier{
-			domain.Tier1W: {Used: 200, Total: 2000, ResetAt: time.Now().Add(7 * 24 * time.Hour)},
+			domain.Tier1W: {Used: 200, Total: 100, ResetAt: time.Now().Add(7 * 24 * time.Hour)},
 		},
 		LastSync: time.Now(),
 		Version:  1,
@@ -194,7 +194,9 @@ func TestUsageHandlerUnsupportedTiersOmitted(t *testing.T) {
 		Platform:     "testplatform",
 		AccountAlias: "testalias",
 		Quotas: map[domain.Tier]domain.QuotaTier{
-			domain.Tier5H: {Used: 100, Total: 1000, ResetAt: time.Now().Add(5 * time.Hour)},
+			domain.Tier5H: {Used: 100, Total: 100, ResetAt: time.Now().Add(5 * time.Hour)},
+			domain.Tier1W: {Used: 0, Total: 100, ResetAt: time.Time{}},
+			domain.Tier1M: {Used: 0, Total: 100, ResetAt: time.Time{}},
 		},
 		LastSync: time.Now(),
 		Version:  1,
@@ -226,7 +228,7 @@ func TestUsageHandlerUnsupportedTiersOmitted(t *testing.T) {
 	_, hasUnsupported := resp.Quotas["UNSUPPORTED"]
 
 	assert.True(t, has5H, "5H tier should be present")
-	assert.False(t, has1W, "1W tier should not be present (not set)")
-	assert.False(t, has1M, "1M tier should not be present (not set)")
+	assert.True(t, has1W, "1W tier should be present (backfilled with zero values)")
+	assert.True(t, has1M, "1M tier should be present (backfilled with zero values)")
 	assert.False(t, hasUnsupported, "unsupported tier should not be present")
 }

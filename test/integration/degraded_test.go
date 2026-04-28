@@ -243,6 +243,20 @@ func TestPartialFailureProducesDegradedStatus(t *testing.T) {
 		assert.Equal(t, "healthy", account["status"], "provider %q should be healthy before failure", prov)
 	}
 
+	for _, prov := range []string{"codex", "kimi", "minimax", "zai", "zhipu"} {
+		account := accounts[prov]
+		quotas, ok := account["quotas"].(map[string]interface{})
+		require.True(t, ok, "provider %q quotas should be a map", prov)
+
+		for _, tier := range []string{"5H", "1W", "1M"} {
+			tierData, hasTier := quotas[tier].(map[string]interface{})
+			assert.True(t, hasTier, "provider %q should have tier %s", prov, tier)
+			if hasTier {
+				assert.Equal(t, float64(100), tierData["total"], "provider %q tier %s should have total=100", prov, tier)
+			}
+		}
+	}
+
 	codexServer.SetResponse("/wham/usage", 500, map[string]string{"error": "internal server error"})
 	syncMgr.Refresh("codex")
 
