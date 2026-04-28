@@ -91,6 +91,9 @@ func (a *Adapter) Fetch(ctx context.Context) (domain.AccountSnapshot, error) {
 
 		if model.CurrentIntervalTotalCount > 0 {
 			used5H := int64(model.CurrentIntervalUsageCount)
+			if used5H < 0 {
+				used5H = 0
+			}
 			percent5H := domain.NormalizeToPercent(used5H, int64(model.CurrentIntervalTotalCount))
 			if percent5H > highest5H {
 				highest5H = percent5H
@@ -103,6 +106,9 @@ func (a *Adapter) Fetch(ctx context.Context) (domain.AccountSnapshot, error) {
 
 		if model.CurrentWeeklyTotalCount > 0 {
 			used1W := int64(model.CurrentWeeklyUsageCount)
+			if used1W < 0 {
+				used1W = 0
+			}
 			percent1W := domain.NormalizeToPercent(used1W, int64(model.CurrentWeeklyTotalCount))
 			if percent1W > highest1W {
 				highest1W = percent1W

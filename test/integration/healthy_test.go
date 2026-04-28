@@ -113,9 +113,9 @@ func TestHealthyFullStackUsageSnapshot(t *testing.T) {
 				"end_time":                     now.Add(4 * time.Hour).UnixMilli(),
 				"current_interval_total_count": 1000,
 				"current_interval_usage_count": 700, // remaining = 700, used = 300
-				"model_name":                   "speech-02",
+				"model_name":                   "coding-plan-02",
 				"current_weekly_total_count":   5000,
-				"current_weekly_usage_count":   2000, // remaining = 3000, used = 2000
+				"current_weekly_usage_count":   2000, // remaining = 2000, used = 3000
 				"weekly_start_time":            now.Add(-7 * 24 * time.Hour).UnixMilli(),
 				"weekly_end_time":              now.Add(7 * 24 * time.Hour).UnixMilli(),
 			},
@@ -332,6 +332,39 @@ func TestHealthyFullStackUsageSnapshot(t *testing.T) {
 			}
 		}
 	}
+
+	// Verify exact Used percentages per provider/tier.
+	// These assertions lock down that each adapter computes the correct usage value.
+	// Helper to extract Used from a provider's tier.
+	getUsed := func(prov, tier string) float64 {
+		quotas := accounts[prov]["quotas"].(map[string]interface{})
+		tierData := quotas[tier].(map[string]interface{})
+		return tierData["used"].(float64)
+	}
+
+	// Codex: adapter consumes upstream used_percent directly via int64(pct) truncation.
+	// Fixture: 5H=45.5, 1W=20.0, 1M=10.0
+	assert.Equal(t, float64(45), getUsed("codex", "5H"), "codex 5H: int64(used_percent=45.5)")
+	assert.Equal(t, float64(20), getUsed("codex", "1W"), "codex 1W: int64(used_percent=20)")
+	assert.Equal(t, float64(10), getUsed("codex", "1M"), "codex 1M: int64(used_percent=10)")
+
+	// Kimi: adapter computes used = NormalizeToPercent(limit - remaining, limit).
+	// Fixture 5H: limit=1000, remaining=600 -> used%=40.  1W: limit=5000, remaining=3500 -> used%=30.
+	assert.Equal(t, float64(40), getUsed("kimi", "5H"), "kimi 5H: (1000-600)/1000*100")
+	assert.Equal(t, float64(30), getUsed("kimi", "1W"), "kimi 1W: (5000-3500)/5000*100")
+
+	// MiniMax: adapter consumes usage_count as used directly.
+	// Fixture 5H: total=1000, usage_count=700 -> used%=70.  1W: total=5000, usage_count=2000 -> used%=40.
+	assert.Equal(t, float64(70), getUsed("minimax", "5H"), "minimax 5H: 700/1000*100")
+	assert.Equal(t, float64(40), getUsed("minimax", "1W"), "minimax 1W: 2000/5000*100")
+
+	// Z.ai (MonitorQuota): adapter uses NormalizeToPercent(usage, currentValue).
+	// Fixture 5H: usage=450, currentValue=1000 -> used%=45.
+	assert.Equal(t, float64(45), getUsed("zai", "5H"), "zai 5H: 450/1000*100")
+
+	// Zhipu (MonitorQuota): adapter uses NormalizeToPercent(usage, currentValue).
+	// Fixture 1M: usage=1500, currentValue=5000 -> used%=30.
+	assert.Equal(t, float64(30), getUsed("zhipu", "1M"), "zhipu 1M: 1500/5000*100")
 
 	// Clean up
 	cancel()

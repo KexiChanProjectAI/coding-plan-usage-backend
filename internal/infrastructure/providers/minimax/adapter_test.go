@@ -53,7 +53,7 @@ func TestFetchQuotaSuccess(t *testing.T) {
 		t.Fatal("expected 5H tier to be present")
 	}
 	if tier5H.Used != 30 {
-		t.Errorf("expected used 30 (30%% of 100), got %d", tier5H.Used)
+		t.Errorf("expected used 30, got %d", tier5H.Used)
 	}
 	if tier5H.Total != 100 {
 		t.Errorf("expected total 100, got %d", tier5H.Total)
@@ -64,7 +64,7 @@ func TestFetchQuotaSuccess(t *testing.T) {
 		t.Fatal("expected 1W tier to be present")
 	}
 	if tier1W.Used != 30 {
-		t.Errorf("expected used 30 (150/500 = 30%%), got %d", tier1W.Used)
+		t.Errorf("expected used 30, got %d", tier1W.Used)
 	}
 	if tier1W.Total != 100 {
 		t.Errorf("expected total 100, got %d", tier1W.Total)
@@ -82,7 +82,7 @@ func TestFetchQuotaSuccess(t *testing.T) {
 	}
 }
 
-func TestCurrentIntervalUsageCountMeansRemaining(t *testing.T) {
+func TestCurrentIntervalUsageCountMeansUsed(t *testing.T) {
 	server := httpmock.New()
 	defer server.Close()
 
@@ -115,9 +115,9 @@ func TestCurrentIntervalUsageCountMeansRemaining(t *testing.T) {
 		t.Fatal("expected 5H tier to be present")
 	}
 
-	expectedUsed := int64(25) // 25% of 100
+	expectedUsed := int64(25)
 	if tier5H.Used != expectedUsed {
-		t.Errorf("expected used = 25%% of 100 = 25, got %d", tier5H.Used)
+		t.Errorf("expected used = 25, got %d", tier5H.Used)
 	}
 	if tier5H.Total != 100 {
 		t.Errorf("expected total 100, got %d", tier5H.Total)
@@ -339,7 +339,7 @@ func TestMultipleModelRemains(t *testing.T) {
 	if !has5H {
 		t.Fatal("expected 5H tier to be present")
 	}
-	// Highest 5H percent: model2 has 100/200 = 50%, model1 has 20/100 = 20%
+	// Highest 5H percent: model1 (20/100) = 20%, model2 (100/200) = 50%
 	if tier5H.Used != 50 {
 		t.Errorf("expected 5H used 50 (highest of 20%% and 50%%), got %d", tier5H.Used)
 	}
@@ -351,7 +351,7 @@ func TestMultipleModelRemains(t *testing.T) {
 	if !has1W {
 		t.Fatal("expected 1W tier to be present since at least one model has weekly quota")
 	}
-	// Highest 1W percent: model2 has 300/1000 = 30%
+	// Highest 1W percent: model2 (300/1000) = 30%
 	if tier1W.Used != 30 {
 		t.Errorf("expected 1W used 30, got %d", tier1W.Used)
 	}
@@ -461,6 +461,12 @@ func TestResetAtSetForValidTiers(t *testing.T) {
 	if !ok {
 		t.Fatal("expected 5H tier to be present")
 	}
+	if tier5H.Used != 30 {
+		t.Errorf("expected 5H used 30, got %d", tier5H.Used)
+	}
+	if tier5H.Total != 100 {
+		t.Errorf("expected 5H total 100, got %d", tier5H.Total)
+	}
 	if tier5H.ResetAt.IsZero() {
 		t.Error("expected 5H reset_at to be set")
 	}
@@ -471,6 +477,12 @@ func TestResetAtSetForValidTiers(t *testing.T) {
 	tier1W, ok := snapshot.Quotas[domain.Tier1W]
 	if !ok {
 		t.Fatal("expected 1W tier to be present")
+	}
+	if tier1W.Used != 30 {
+		t.Errorf("expected 1W used 30, got %d", tier1W.Used)
+	}
+	if tier1W.Total != 100 {
+		t.Errorf("expected 1W total 100, got %d", tier1W.Total)
 	}
 	if tier1W.ResetAt.IsZero() {
 		t.Error("expected 1W reset_at to be set")
