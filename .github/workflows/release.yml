@@ -15,19 +15,8 @@ jobs:
         include:
           - goos: linux
             goarch: amd64
-            ext: tar.gz
           - goos: linux
             goarch: arm64
-            ext: tar.gz
-          - goos: darwin
-            goarch: amd64
-            ext: tar.gz
-          - goos: darwin
-            goarch: arm64
-            ext: tar.gz
-          - goos: windows
-            goarch: amd64
-            ext: zip
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -43,25 +32,14 @@ jobs:
           CGO_ENABLED: 0
           VERSION: ${{ github.ref_name }}
         run: |
-          output_name="ucpqa"
-          if [ "$GOOS" = "windows" ]; then
-            output_name="ucpqa.exe"
-          fi
-
-          go build -ldflags="-X main.version=${VERSION}" -o "${output_name}" ./cmd/api
-
-          archive_name="ucpqa-${VERSION}-${GOOS}-${GOARCH}.${{ matrix.ext }}"
-
-          if [ "$GOOS" = "windows" ]; then
-            powershell -Command "Compress-Archive -Path '${output_name}' -DestinationPath '${archive_name}'"
-          else
-            tar -czf "${archive_name}" "${output_name}"
-          fi
+          go build -ldflags="-X main.version=${VERSION}" -o ucpqa ./cmd/api
+          archive_name="ucpqa-${VERSION}-${GOOS}-${GOARCH}.tar.gz"
+          tar -czf "${archive_name}" ucpqa
 
       - uses: actions/upload-artifact@v4
         with:
           name: ucpqa-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: ucpqa-${{ github.ref_name }}*.${{ matrix.ext }}
+          path: ucpqa-${{ github.ref_name }}-*.tar.gz
 
   release:
     needs: build
@@ -78,7 +56,7 @@ jobs:
       - name: Generate checksums
         run: |
           cd artifacts
-          find . -name "ucpqa-*.tar.gz" -o -name "ucpqa-*.zip" | while read -r archive; do
+          find . -name "ucpqa-*.tar.gz" | while read -r archive; do
             sha256sum "$archive"
           done > checksums.txt
           cat checksums.txt
