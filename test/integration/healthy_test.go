@@ -353,10 +353,8 @@ func TestHealthyFullStackUsageSnapshot(t *testing.T) {
 	assert.Equal(t, float64(40), getUsed("kimi", "5H"), "kimi 5H: (1000-600)/1000*100")
 	assert.Equal(t, float64(30), getUsed("kimi", "1W"), "kimi 1W: (5000-3500)/5000*100")
 
-	// MiniMax: adapter consumes usage_count as used directly.
-	// Fixture 5H: total=1000, usage_count=700 -> used%=70.  1W: total=5000, usage_count=2000 -> used%=40.
-	assert.Equal(t, float64(70), getUsed("minimax", "5H"), "minimax 5H: 700/1000*100")
-	assert.Equal(t, float64(40), getUsed("minimax", "1W"), "minimax 1W: 2000/5000*100")
+	assert.Equal(t, float64(30), getUsed("minimax", "5H"), "minimax 5H: (1000-700)/1000*100")
+	assert.Equal(t, float64(60), getUsed("minimax", "1W"), "minimax 1W: (5000-2000)/5000*100")
 
 	// Z.ai (MonitorQuota): adapter uses NormalizeToPercent(usage, currentValue).
 	// Fixture 5H: usage=450, currentValue=1000 -> used%=45.

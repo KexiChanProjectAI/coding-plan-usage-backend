@@ -90,7 +90,7 @@ func (a *Adapter) Fetch(ctx context.Context) (domain.AccountSnapshot, error) {
 		}
 
 		if model.CurrentIntervalTotalCount > 0 {
-			used5H := int64(model.CurrentIntervalUsageCount)
+			used5H := int64(model.CurrentIntervalTotalCount - model.CurrentIntervalUsageCount)
 			if used5H < 0 {
 				used5H = 0
 			}
@@ -105,7 +105,7 @@ func (a *Adapter) Fetch(ctx context.Context) (domain.AccountSnapshot, error) {
 		}
 
 		if model.CurrentWeeklyTotalCount > 0 {
-			used1W := int64(model.CurrentWeeklyUsageCount)
+			used1W := int64(model.CurrentWeeklyTotalCount - model.CurrentWeeklyUsageCount)
 			if used1W < 0 {
 				used1W = 0
 			}
