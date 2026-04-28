@@ -18,6 +18,7 @@ import (
 	"github.com/quotahub/ucpqa/internal/transport/http/api"
 	"github.com/quotahub/ucpqa/internal/transport/sse"
 	"github.com/quotahub/ucpqa/internal/transport/ws"
+	"github.com/quotahub/ucpqa/internal/web"
 )
 
 type Builder struct {
@@ -122,6 +123,16 @@ func (b *Builder) buildAPIServer(usageHandler *api.UsageHandler, sseHandler *sse
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 	router.Use(b.Metrics.HTTPMiddleware())
+
+	router.GET("/", func(c *gin.Context) {
+		c.Header("Content-Type", "text/html; charset=utf-8")
+		data, err := web.DashboardFS.ReadFile("dashboard.html")
+		if err != nil {
+			c.String(http.StatusInternalServerError, "failed to load dashboard")
+			return
+		}
+		c.String(http.StatusOK, string(data))
+	})
 
 	v1 := router.Group("/api/v1")
 	{
