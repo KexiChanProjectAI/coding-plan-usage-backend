@@ -77,8 +77,9 @@
     }
 
     html, body {
-      height: 100%;
-      overflow-x: hidden;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
     }
 
     body {
@@ -88,13 +89,14 @@
                         radial-gradient(ellipse at 80% 80%, rgba(168, 85, 247, 0.08) 0%, transparent 50%),
                         radial-gradient(ellipse at 50% 50%, rgba(6, 182, 212, 0.05) 0%, transparent 70%);
       color: var(--text-primary);
-      min-height: 100vh;
-      min-height: 100dvh;
-      padding: var(--space-lg);
-      padding-left: calc(var(--space-lg) + var(--safe-left));
+      height: 100vh;
+      height: 100dvh;
+      padding: var(--space-md);
+      padding-left: calc(var(--space-md) + var(--safe-left));
+      padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
       display: flex;
       flex-direction: column;
-      gap: var(--space-lg);
+      gap: var(--space-md);
     }
 
     /* Header */
@@ -193,44 +195,49 @@
     .plans-container {
       display: flex;
       flex-direction: column;
-      gap: var(--space-md);
+      gap: var(--space-sm);
+      overflow: hidden;
       flex: 1;
-      overflow-y: auto;
-      padding-bottom: var(--space-md);
+      min-height: 0;
     }
 
     /* Plan Card */
     .plan-card {
       background: var(--surface-glass);
       border: 1px solid var(--border-glass);
-      border-radius: var(--radius-xl);
-      padding: var(--space-lg);
+      border-radius: var(--radius-lg);
+      padding: var(--space-sm) var(--space-md);
       backdrop-filter: blur(20px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
       transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      flex: 1;
     }
 
     .plan-card:hover {
       background: var(--surface-glass-hover);
       transform: translateY(-2px);
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     }
 
     .plan-header {
       display: flex;
       align-items: center;
-      gap: var(--space-md);
-      margin-bottom: var(--space-lg);
+      gap: var(--space-sm);
+      margin-bottom: var(--space-xs);
+      flex-shrink: 0;
     }
 
     .plan-avatar {
-      width: 48px;
-      height: 48px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: var(--text-title);
+      font-size: 12px;
       font-weight: 600;
       color: white;
       flex-shrink: 0;
@@ -239,27 +246,60 @@
 
     .plan-info {
       display: flex;
-      flex-direction: column;
-      gap: var(--space-xs);
+      flex-direction: row;
+      align-items: center;
+      gap: var(--space-sm);
       min-width: 0;
+      flex: 1;
     }
 
     .plan-name {
-      font-size: var(--text-title);
+      font-size: var(--text-subtitle);
       font-weight: 600;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      flex-shrink: 0;
     }
 
     .plan-badge {
       display: inline-flex;
       align-items: center;
-      padding: var(--space-xs) var(--space-sm);
+      padding: 2px var(--space-xs);
       border-radius: var(--radius-sm);
-      font-size: var(--text-caption);
+      font-size: 10px;
       font-weight: 500;
       width: fit-content;
+      flex-shrink: 0;
+    }
+
+    .plan-meta {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: var(--space-sm);
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    .plan-meta-item {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+
+    .plan-meta-label {
+      font-size: 9px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .plan-meta-value {
+      font-size: var(--text-caption);
+      font-weight: 600;
+      color: var(--text-secondary);
     }
 
     .plan-badge.healthy {
@@ -284,16 +324,18 @@
     .quota-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: var(--space-md);
+      gap: var(--space-sm);
+      flex: 1;
+      min-height: 0;
     }
 
     .quota-block {
       display: flex;
       flex-direction: column;
-      gap: var(--space-sm);
-      padding: var(--space-md);
+      gap: 2px;
+      padding: var(--space-sm);
       background: rgba(0, 0, 0, 0.2);
-      border-radius: var(--radius-lg);
+      border-radius: var(--radius-md);
       min-width: 0;
     }
 
@@ -304,35 +346,36 @@
     }
 
     .quota-label {
-      font-size: var(--text-caption);
+      font-size: 10px;
       color: var(--text-muted);
       font-weight: 500;
       letter-spacing: 0.5px;
     }
 
     .quota-remaining {
-      font-size: var(--text-subtitle);
+      font-size: var(--text-body);
       font-weight: 600;
       white-space: nowrap;
     }
 
     .quota-percentage {
-      font-size: var(--text-caption);
+      font-size: 10px;
       color: var(--text-secondary);
     }
 
     .progress-container {
-      height: 10px;
+      height: 6px;
       background: rgba(255, 255, 255, 0.1);
-      border-radius: 5px;
+      border-radius: 3px;
       overflow: hidden;
       position: relative;
+      margin-top: auto;
     }
 
     .progress-bar {
       height: 100%;
       border-radius: 5px;
-      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: none;
       position: relative;
     }
 
@@ -386,13 +429,14 @@
     .legend {
       display: flex;
       justify-content: center;
-      gap: var(--space-lg);
-      padding: var(--space-md);
+      gap: var(--space-md);
+      padding: var(--space-sm) var(--space-md);
       background: var(--surface-glass);
       border: 1px solid var(--border-glass);
-      border-radius: var(--radius-lg);
+      border-radius: var(--radius-md);
       backdrop-filter: blur(10px);
       flex-wrap: wrap;
+      flex-shrink: 0;
     }
 
     .legend-item {
@@ -532,13 +576,13 @@
     /* Responsive */
     @media (max-width: 600px) {
       body {
-        padding: var(--space-md);
-        padding-left: calc(var(--space-md) + var(--safe-left));
+        padding: var(--space-sm);
+        padding-left: calc(var(--space-sm) + var(--safe-left));
       }
 
       .header {
         flex-direction: column;
-        gap: var(--space-md);
+        gap: var(--space-sm);
       }
 
       .header-right {
@@ -548,16 +592,21 @@
       }
 
       .quota-grid {
-        grid-template-columns: 1fr;
-        gap: var(--space-sm);
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-xs);
       }
 
       .plan-card {
-        padding: var(--space-md);
+        padding: var(--space-xs) var(--space-sm);
       }
 
       .legend {
-        gap: var(--space-md);
+        gap: var(--space-sm);
+        padding: var(--space-xs) var(--space-sm);
+      }
+
+      .plans-container {
+        gap: var(--space-xs);
       }
     }
 
@@ -620,7 +669,7 @@
 
   <script>
     const API_URL = 'http://100.64.1.38:8070/api/v1/usage';
-    const REFRESH_INTERVAL = 60000;
+    const REFRESH_INTERVAL = 1000;
 
     const quotaTypeMap = {
       '5H': '5H',
@@ -645,7 +694,39 @@
       setInterval(updateTime, 1000);
       fetchData();
       startAutoRefresh();
+      requestFullscreen();
+      requestWakeLock();
     });
+
+    async function requestFullscreen() {
+      const el = document.documentElement;
+      try {
+        if (el.requestFullscreen) await el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+        else if (el.msRequestFullscreen) await el.msRequestFullscreen();
+      } catch (e) {
+        console.warn('Fullscreen request failed:', e);
+      }
+    }
+
+    let wakeLock = null;
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+          wakeLock.addEventListener('release', () => {
+            console.log('Wake Lock released');
+          });
+          document.addEventListener('visibilitychange', async () => {
+            if (document.visibilityState === 'visible' && !wakeLock) {
+              wakeLock = await navigator.wakeLock.request('screen');
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('Wake Lock request failed:', e);
+      }
+    }
 
     refreshBtn.addEventListener('click', () => {
       fetchData(true);
@@ -676,14 +757,24 @@
       return `${hours}h ago`;
     }
 
-    function formatDuration(used, total) {
-      const remaining = Math.max(0, total - used);
-      const hours = Math.floor(remaining / 60);
-      const minutes = remaining % 60;
-      if (hours > 0) {
-        return `${hours}h ${minutes}m left`;
+    function formatDuration(used, total, resetAt) {
+      const percentage = Math.round(((total - used) / total) * 100);
+      const clampedPercentage = Math.max(0, Math.min(100, percentage));
+      // Invalid reset date means no reset (INF)
+      if (!resetAt || resetAt === '0001-01-01T00:00:00Z') {
+        return `INF · ${clampedPercentage}%`;
       }
-      return `${minutes}m left`;
+      const resetDate = new Date(resetAt);
+      const now = new Date();
+      const diffMs = resetDate - now;
+      if (diffMs > 0) {
+        const diffMins = Math.ceil(diffMs / 60000);
+        const h = Math.floor(diffMins / 60);
+        const m = diffMins % 60;
+        if (h > 0) return `${h}h ${m}m · ${clampedPercentage}%`;
+        return `${m}m · ${clampedPercentage}%`;
+      }
+      return `${clampedPercentage}% left`;
     }
 
     function getProgressClass(percentage, quotaType) {
@@ -800,7 +891,17 @@
         return;
       }
 
-      plansContainer.innerHTML = data.map(plan => {
+      const sortedData = [...data].sort((a, b) => {
+        const nameA = (a.platform || '').toLowerCase();
+        const nameB = (b.platform || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+
+      // Build new DOM off-screen to avoid jitter
+      const fragment = document.createDocumentFragment();
+      const wrapper = document.createElement('div');
+      wrapper.style.display = 'contents';
+      wrapper.innerHTML = sortedData.map(plan => {
         const platformName = plan.platform || 'Unknown';
         const avatarColor = getAvatarColor(platformName);
         const status = plan.status || 'healthy';
@@ -827,7 +928,8 @@
           const total = quota.total || 1;
           const percentage = Math.round(((total - used) / total) * 100);
           const clampedPercentage = Math.max(0, Math.min(100, percentage));
-          const remainingText = formatDuration(used, total);
+          const resetAt = quota.reset_at;
+          const remainingText = formatDuration(used, total, resetAt);
           const colorClass = getProgressColorClass(clampedPercentage, displayType);
           const isLow = clampedPercentage <= 30;
 
@@ -853,6 +955,20 @@
                 <h2 class="plan-name">${platformName}</h2>
                 <span class="plan-badge ${statusClass}">${statusLabel}</span>
               </div>
+              <div class="plan-meta">
+                <div class="plan-meta-item">
+                  <span class="plan-meta-label">5H</span>
+                  <span class="plan-meta-value">${(quotas['5H'] ? Math.max(0, Math.min(100, Math.round(((quotas['5H'].total - quotas['5H'].used) / quotas['5H'].total) * 100))) : '—')}%</span>
+                </div>
+                <div class="plan-meta-item">
+                  <span class="plan-meta-label">7D</span>
+                  <span class="plan-meta-value">${(quotas['1W'] ? Math.max(0, Math.min(100, Math.round(((quotas['1W'].total - quotas['1W'].used) / quotas['1W'].total) * 100))) : '—')}%</span>
+                </div>
+                <div class="plan-meta-item">
+                  <span class="plan-meta-label">1M</span>
+                  <span class="plan-meta-value">${(quotas['1M'] ? Math.max(0, Math.min(100, Math.round(((quotas['1M'].total - quotas['1M'].used) / quotas['1M'].total) * 100))) : '—')}%</span>
+                </div>
+              </div>
             </div>
             <div class="quota-grid">
               ${quotaBlocks}
@@ -860,6 +976,9 @@
           </article>
         `;
       }).join('');
+      fragment.appendChild(wrapper);
+      plansContainer.innerHTML = '';
+      plansContainer.appendChild(fragment);
     }
 
     async function fetchData(isManual = false) {
