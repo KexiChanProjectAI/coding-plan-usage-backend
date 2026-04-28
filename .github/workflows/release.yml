@@ -1,0 +1,91 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            ext: tar.gz
+          - goos: linux
+            goarch: arm64
+            ext: tar.gz
+          - goos: darwin
+            goarch: amd64
+            ext: tar.gz
+          - goos: darwin
+            goarch: arm64
+            ext: tar.gz
+          - goos: windows
+            goarch: amd64
+            ext: zip
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+          VERSION: ${{ github.ref_name }}
+        run: |
+          output_name="ucpqa"
+          if [ "$GOOS" = "windows" ]; then
+            output_name="ucpqa.exe"
+          fi
+
+          go build -ldflags="-X main.version=${VERSION}" -o "${output_name}" ./cmd/api
+
+          archive_name="ucpqa-${VERSION}-${GOOS}-${GOARCH}.${{ matrix.ext }}"
+
+          if [ "$GOOS" = "windows" ]; then
+            powershell -Command "Compress-Archive -Path '${output_name}' -DestinationPath '${archive_name}'"
+          else
+            tar -czf "${archive_name}" "${output_name}"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ucpqa-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: ucpqa-${{ github.ref_name }}*.${{ matrix.ext }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: ucpqa-*
+          merge-multiple: false
+
+      - name: Generate checksums
+        run: |
+          cd artifacts
+          find . -name "ucpqa-*.tar.gz" -o -name "ucpqa-*.zip" | while read -r archive; do
+            sha256sum "$archive"
+          done > checksums.txt
+          cat checksums.txt
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/**/ucpqa-*
+            artifacts/**/checksums.txt
+          generate_release_notes: true
