@@ -1,0 +1,76 @@
+# QuotaHub Configuration
+# See README.md for full documentation
+
+server:
+  api_port: 8080        # API server port (REST, SSE, WebSocket)
+  metrics_port: 9090    # Prometheus metrics server port
+
+global:
+  max_stale_duration: 10m  # Quota tiers with reset_at older than this are omitted from snapshots
+
+providers:
+  # OpenAI Codex — WHAM usage API
+  codex:
+    type: codex              # Provider adapter type
+    name: codex              # Human-readable alias (defaults to config key)
+    base_url: "https://chatgpt.com/backend-api/"
+    token: "your-codex-token-here"     # REQUIRED — Bearer token for authorization
+    refresh_interval: 5m               # How often to poll this provider
+    jitter_percent: 15                 # ±15% random jitter on refresh_interval
+    backoff_initial: 1s                # Initial backoff on fetch failure
+    backoff_max: 60s                   # Maximum backoff duration
+
+  # Kimi Coding Plan
+  kimi:
+    type: kimi
+    name: kimi
+    base_url: "https://api.kimi.com/"
+    token: "your-kimi-token-here"      # REQUIRED
+    refresh_interval: 5m
+    jitter_percent: 10
+    backoff_initial: 2s
+    backoff_max: 120s
+
+  # MiniMax — work account
+  minimax-work:
+    type: minimax
+    name: minimax-work
+    base_url: "https://www.minimaxi.com/"
+    token: "your-minimax-work-token-here"   # REQUIRED
+    refresh_interval: 5m
+    jitter_percent: 10
+    backoff_initial: 1s
+    backoff_max: 60s
+
+  # MiniMax — personal account (second instance of same type!)
+  minimax-personal:
+    type: minimax
+    name: minimax-personal
+    base_url: "https://www.minimaxi.com/"
+    token: "your-minimax-personal-token-here"   # REQUIRED
+    refresh_interval: 5m
+    jitter_percent: 10
+    backoff_initial: 1s
+    backoff_max: 60s
+
+  # Z.ai — MonitorQuota API
+  zai:
+    type: zai
+    name: zai
+    base_url: "https://console.z.ai/"
+    token: "your-zai-token-here"       # REQUIRED
+    refresh_interval: 5m
+    jitter_percent: 10
+    backoff_initial: 2s
+    backoff_max: 120s
+
+  # Zhipu BigModel — MonitorQuota API (same shape as Z.ai)
+  zhipu:
+    type: zhipu
+    name: zhipu
+    base_url: "https://open.bigmodel.cn/"
+    token: "your-zhipu-token-here"     # REQUIRED
+    refresh_interval: 5m
+    jitter_percent: 10
+    backoff_initial: 2s
+    backoff_max: 120s
