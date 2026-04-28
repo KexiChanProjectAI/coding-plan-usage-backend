@@ -372,7 +372,7 @@ func TestMultipleModelRemains(t *testing.T) {
 	}
 }
 
-func TestNonCodingPlanModelsIgnored(t *testing.T) {
+func TestAllModelsProcessed(t *testing.T) {
 	server := httpmock.New()
 	defer server.Close()
 
@@ -401,13 +401,12 @@ func TestNonCodingPlanModelsIgnored(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	// Should have backfilled tiers with 0% since no coding-plan models
 	tier5H, has5H := snapshot.Quotas[domain.Tier5H]
 	if !has5H {
-		t.Fatal("expected 5H tier to be backfilled")
+		t.Fatal("expected 5H tier to be present")
 	}
-	if tier5H.Used != 0 {
-		t.Errorf("expected 5H used 0, got %d", tier5H.Used)
+	if tier5H.Used != 50 {
+		t.Errorf("expected 5H used 50, got %d", tier5H.Used)
 	}
 	if tier5H.Total != 100 {
 		t.Errorf("expected 5H total 100, got %d", tier5H.Total)
@@ -415,10 +414,10 @@ func TestNonCodingPlanModelsIgnored(t *testing.T) {
 
 	tier1W, has1W := snapshot.Quotas[domain.Tier1W]
 	if !has1W {
-		t.Fatal("expected 1W tier to be backfilled")
+		t.Fatal("expected 1W tier to be present")
 	}
-	if tier1W.Used != 0 {
-		t.Errorf("expected 1W used 0, got %d", tier1W.Used)
+	if tier1W.Used != 50 {
+		t.Errorf("expected 1W used 50, got %d", tier1W.Used)
 	}
 	if tier1W.Total != 100 {
 		t.Errorf("expected 1W total 100, got %d", tier1W.Total)

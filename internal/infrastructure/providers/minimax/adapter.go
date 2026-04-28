@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/quotahub/ucpqa/internal/domain"
@@ -85,10 +84,6 @@ func (a *Adapter) Fetch(ctx context.Context) (domain.AccountSnapshot, error) {
 	var resetAt5H, resetAt1W time.Time
 
 	for _, model := range result.ModelRemains {
-		if !strings.HasPrefix(model.ModelName, "coding-plan") {
-			continue
-		}
-
 		if model.CurrentIntervalTotalCount > 0 {
 			used5H := int64(model.CurrentIntervalTotalCount - model.CurrentIntervalUsageCount)
 			if used5H < 0 {

@@ -119,6 +119,31 @@ func (sm *SyncManager) poll(ctx context.Context, p provider.Provider) {
 		backoff = 1 * time.Second
 	}
 
+	snapshot, err := p.Fetch(ctx)
+	if err != nil {
+		log.Printf("[syncmanager] poll: initial fetch error for provider %q: %v", name, err)
+		backoff = min(backoff*2, provCfg.BackoffMax)
+		if provCfg.BackoffMax > 0 && backoff <= 0 {
+			backoff = provCfg.BackoffMax
+		}
+		log.Printf("[syncmanager] poll: backoff increased to %v for provider %q", backoff, name)
+
+		select {
+		case <-ctx.Done():
+			return
+		case <-sm.stopCh:
+			return
+		case <-time.After(backoff):
+		}
+	} else {
+		sm.store.Update(snapshot)
+		backoff = provCfg.BackoffInitial
+		if backoff <= 0 {
+			backoff = 1 * time.Second
+		}
+		log.Printf("[syncmanager] poll: initial success for provider %q, backoff reset to %v", name, backoff)
+	}
+
 	for {
 		interval := provCfg.RefreshInterval
 		if interval <= 0 {
