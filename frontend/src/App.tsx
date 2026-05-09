@@ -12,15 +12,15 @@ import { normalizeProviders } from './domain/normalize'
 import { formatRelativeLastSync } from './domain/format'
 import { fetchUsage } from './api/client'
 import { useFetchState } from './api/fetch-state'
+import { useRealtimeRefresh } from './api/use-realtime-refresh'
 import type { NormalizedProvider } from './domain/types'
 import './App.css'
-
-const REFRESH_INTERVAL_MS = 30_000
 
 function Dashboard() {
   const { state, run } = useFetchState<NormalizedProvider[]>()
   const [lastSuccessAt, setLastSuccessAt] = useState<Date | null>(null)
   const [now, setNow] = useState(() => new Date())
+  const [refreshStatus, setRefreshStatus] = useState('')
 
   const doFetch = useCallback(async () => {
     const data = await run(async (signal) => {
@@ -36,12 +36,10 @@ function Dashboard() {
     doFetch()
   }, [doFetch])
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      doFetch()
-    }, REFRESH_INTERVAL_MS)
-    return () => clearInterval(interval)
-  }, [doFetch])
+  useRealtimeRefresh(doFetch, (rtState) => {
+    const label = rtState.transport ? rtState.transport.toUpperCase() : 'OFF'
+    setRefreshStatus(rtState.isConnected ? label : `${label} (reconnecting)`)
+  })
 
   useEffect(() => {
     const tick = setInterval(() => setNow(new Date()), 60_000)
@@ -58,6 +56,12 @@ function Dashboard() {
       {lastSuccessAt && (
         <span className="header-last-sync" data-testid="header-last-sync">
           Updated {formatRelativeLastSync(lastSuccessAt, now)}
+          {refreshStatus && (
+            <span className="header-refresh-status" data-testid="header-refresh-status">
+              {' '}
+              · {refreshStatus}
+            </span>
+          )}
         </span>
       )}
     </>

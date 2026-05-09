@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor, cleanup } from '@testing-library/react'
+import { act, render, screen, waitFor, cleanup } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '../App'
 import * as client from '../api/client'
@@ -150,7 +150,10 @@ describe('Dashboard', () => {
     })
   })
 
-  it('auto-refreshes every 30 seconds and cleans up on unmount', async () => {
+  it('falls back to 5-second polling and cleans up on unmount', async () => {
+    vi.stubGlobal('EventSource', undefined)
+    vi.stubGlobal('WebSocket', undefined)
+
     const fetchSpy = vi.spyOn(client, 'fetchUsage').mockResolvedValue(mockProviders)
 
     const { unmount } = render(<App />)
@@ -161,22 +164,30 @@ describe('Dashboard', () => {
 
     expect(fetchSpy.mock.calls.length).toBeGreaterThanOrEqual(1)
 
-    vi.advanceTimersByTime(30_000)
+    act(() => {
+      vi.advanceTimersByTime(5_000)
+    })
 
     await waitFor(() => {
       expect(fetchSpy).toHaveBeenCalledTimes(2)
     })
 
-    vi.advanceTimersByTime(30_000)
+    act(() => {
+      vi.advanceTimersByTime(5_000)
+    })
 
     await waitFor(() => {
       expect(fetchSpy).toHaveBeenCalledTimes(3)
     })
 
     unmount()
-    vi.advanceTimersByTime(30_000)
+    act(() => {
+      vi.advanceTimersByTime(5_000)
+    })
 
     expect(fetchSpy).toHaveBeenCalledTimes(3)
+
+    vi.unstubAllGlobals()
   })
 
   it('manual refresh triggers fetch and updates timestamp after success', async () => {
