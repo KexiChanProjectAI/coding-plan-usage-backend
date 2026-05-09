@@ -1,19 +1,10 @@
-import { useEffect, useState, type HTMLAttributes, type ButtonHTMLAttributes, type ProgressHTMLAttributes, type PropsWithChildren } from 'react'
+import { type HTMLAttributes, type ButtonHTMLAttributes, type ProgressHTMLAttributes, type PropsWithChildren } from 'react'
 import './theme.css'
 
 export type ColorScheme = 'light' | 'dark'
 
 export function Md3ThemeProvider({ children }: PropsWithChildren) {
-  const [scheme, setScheme] = useState<ColorScheme>('dark')
-
-  useEffect(() => {
-    const media = window.matchMedia('(prefers-color-scheme: dark)')
-    const onChange = (event: MediaQueryListEvent) => setScheme(event.matches ? 'dark' : 'light')
-    media.addEventListener('change', onChange)
-    return () => media.removeEventListener('change', onChange)
-  }, [])
-
-  return <div data-md3-scheme={scheme}>{children}</div>
+  return <div data-md3-scheme="dark">{children}</div>
 }
 
 export type Md3ButtonProps = HTMLAttributes<HTMLButtonElement> & {
