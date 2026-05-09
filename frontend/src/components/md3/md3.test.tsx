@@ -33,7 +33,7 @@ describe('Md3ThemeProvider', () => {
     cleanup()
   })
 
-  it('renders children and sets data-md3-scheme based on prefers-color-scheme', () => {
+  it('renders children and defaults data-md3-scheme to dark', () => {
     render(
       <Md3ThemeProvider>
         <div data-testid="child">hello</div>
@@ -41,10 +41,10 @@ describe('Md3ThemeProvider', () => {
     )
     expect(screen.getByTestId('child')).toBeInTheDocument()
     const wrapper = screen.getByTestId('child').parentElement
-    expect(wrapper).toHaveAttribute('data-md3-scheme')
+    expect(wrapper).toHaveAttribute('data-md3-scheme', 'dark')
   })
 
-  it('updates data-md3-scheme when prefers-color-scheme changes', async () => {
+  it('keeps data-md3-scheme dark when prefers-color-scheme changes', async () => {
     const mql = mockMatchMedia(false)
 
     render(
@@ -62,7 +62,7 @@ describe('Md3ThemeProvider', () => {
 
     changeHandler?.({ matches: false } as MediaQueryListEvent)
     await new Promise((resolve) => setTimeout(resolve, 0))
-    expect(wrapper).toHaveAttribute('data-md3-scheme', 'light')
+    expect(wrapper).toHaveAttribute('data-md3-scheme', 'dark')
   })
 })
 
