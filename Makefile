@@ -1,4 +1,4 @@
-.PHONY: test test-race test-bench lint build clean
+.PHONY: test test-race test-bench lint build clean tidy verify frontend-install frontend-typecheck frontend-test frontend-build verify-all
 
 # Binary name
 BINARY_NAME=ucpqa
@@ -49,3 +49,22 @@ tidy:
 # Verify dependencies
 verify:
 	go mod verify
+
+# Install frontend dependencies
+frontend-install:
+	cd frontend && npm ci
+
+# Run frontend typecheck
+frontend-typecheck:
+	cd frontend && npm run typecheck
+
+# Run frontend tests
+frontend-test:
+	cd frontend && npm test -- --run
+
+# Build frontend assets
+frontend-build:
+	cd frontend && npm run build
+
+# Run full backend + frontend verification
+verify-all: test lint build frontend-install frontend-typecheck frontend-test frontend-build

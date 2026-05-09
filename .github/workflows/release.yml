@@ -18,26 +18,27 @@ jobs:
         with:
           go-version: '1.26'
 
-      - name: Verify dashboard.html exists
-        run: test -f internal/web/dashboard.html
-
-      - name: Check React 19.2 ESM markers
-        run: |
-          grep -q 'esm.sh/react@19.2.0' internal/web/dashboard.html
-          grep -q 'esm.sh/react-dom@19.2.0/client' internal/web/dashboard.html
-
-      - name: Reject UMD React paths
-        run: |
-          ! grep -q '/umd/' internal/web/dashboard.html
-
       - name: Run Go tests
         run: go test ./...
 
-      - name: Build and verify embedded dashboard
-        run: |
-          go build -o ucpqa ./cmd/api
-          strings ./ucpqa | grep -q 'QuotaHub Dashboard'
-          strings ./ucpqa | grep -q 'esm.sh/react@19.2.0'
+      - name: Build Go binary
+        run: go build -o ucpqa ./cmd/api
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+
+      - name: Frontend typecheck
+        run: cd frontend && npm run typecheck
+
+      - name: Frontend tests
+        run: cd frontend && npm test -- --run
+
+      - name: Frontend build
+        run: cd frontend && npm run build
 
   build:
     needs: verify

@@ -52,6 +52,10 @@ cp configs/config.yaml config.yaml
 # Starts API server on :8080, metrics on :9090
 ```
 
+## Frontend Dashboard
+
+A React/TypeScript dashboard for viewing quota data is in the `frontend/` directory. See [frontend/README.md](frontend/README.md) for setup, deployment, and environment variable documentation.
+
 ## Configuration
 
 Reference `configs/config.yaml` for a full example. Every provider requires a valid token to start.
