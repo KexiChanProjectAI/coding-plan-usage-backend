@@ -12,6 +12,13 @@ func TestEnvOverridesYaml(t *testing.T) {
 server:
   api_port: 8080
   metrics_port: 9090
+  cors_enabled: false
+  cors_allowed_origins:
+    - https://yaml.example.com
+  cors_allowed_methods:
+    - GET
+  cors_allowed_headers:
+    - Content-Type
 global:
   max_stale_duration: 5m
 providers:
@@ -35,12 +42,20 @@ providers:
 	os.Setenv("UCPQA_MAX_STALE_DURATION", "15m")
 	os.Setenv("UCPQA_PROVIDER_CODEX_TOKEN", "env-token")
 	os.Setenv("UCPQA_PROVIDER_CODEX_REFRESH_INTERVAL", "20m")
+	os.Setenv("UCPQA_CORS_ENABLED", "true")
+	os.Setenv("UCPQA_CORS_ALLOWED_ORIGINS", "https://frontend.example.com,http://localhost:5173")
+	os.Setenv("UCPQA_CORS_ALLOWED_METHODS", "GET,OPTIONS")
+	os.Setenv("UCPQA_CORS_ALLOWED_HEADERS", "Content-Type,Authorization")
 	defer func() {
 		os.Unsetenv("UCPQA_API_PORT")
 		os.Unsetenv("UCPQA_METRICS_PORT")
 		os.Unsetenv("UCPQA_MAX_STALE_DURATION")
 		os.Unsetenv("UCPQA_PROVIDER_CODEX_TOKEN")
 		os.Unsetenv("UCPQA_PROVIDER_CODEX_REFRESH_INTERVAL")
+		os.Unsetenv("UCPQA_CORS_ENABLED")
+		os.Unsetenv("UCPQA_CORS_ALLOWED_ORIGINS")
+		os.Unsetenv("UCPQA_CORS_ALLOWED_METHODS")
+		os.Unsetenv("UCPQA_CORS_ALLOWED_HEADERS")
 	}()
 
 	cfg, err := Load("", configPath)
@@ -62,6 +77,18 @@ providers:
 	}
 	if cfg.Providers["codex"].RefreshInterval != 20*time.Minute {
 		t.Errorf("RefreshInterval: got %v, want 20m", cfg.Providers["codex"].RefreshInterval)
+	}
+	if !cfg.Server.CorsEnabled {
+		t.Errorf("CorsEnabled: got %v, want true", cfg.Server.CorsEnabled)
+	}
+	if len(cfg.Server.CorsAllowedOrigins) != 2 || cfg.Server.CorsAllowedOrigins[0] != "https://frontend.example.com" || cfg.Server.CorsAllowedOrigins[1] != "http://localhost:5173" {
+		t.Errorf("CorsAllowedOrigins: got %v, want [https://frontend.example.com http://localhost:5173]", cfg.Server.CorsAllowedOrigins)
+	}
+	if len(cfg.Server.CorsAllowedMethods) != 2 || cfg.Server.CorsAllowedMethods[0] != "GET" || cfg.Server.CorsAllowedMethods[1] != "OPTIONS" {
+		t.Errorf("CorsAllowedMethods: got %v, want [GET OPTIONS]", cfg.Server.CorsAllowedMethods)
+	}
+	if len(cfg.Server.CorsAllowedHeaders) != 2 || cfg.Server.CorsAllowedHeaders[0] != "Content-Type" || cfg.Server.CorsAllowedHeaders[1] != "Authorization" {
+		t.Errorf("CorsAllowedHeaders: got %v, want [Content-Type Authorization]", cfg.Server.CorsAllowedHeaders)
 	}
 }
 

@@ -19,8 +19,12 @@ type Config struct {
 
 // ServerConfig holds HTTP server settings.
 type ServerConfig struct {
-	APIPort     int `yaml:"api_port"`
-	MetricsPort int `yaml:"metrics_port"`
+	APIPort            int      `yaml:"api_port"`
+	MetricsPort        int      `yaml:"metrics_port"`
+	CorsEnabled        bool     `yaml:"cors_enabled"`
+	CorsAllowedOrigins []string `yaml:"cors_allowed_origins"`
+	CorsAllowedMethods []string `yaml:"cors_allowed_methods"`
+	CorsAllowedHeaders []string `yaml:"cors_allowed_headers"`
 }
 
 // GlobalConfig holds application-wide settings.
@@ -101,6 +105,18 @@ func applyEnvOverrides(cfg *Config) {
 		if port, err := strconv.Atoi(v); err == nil {
 			cfg.Server.MetricsPort = port
 		}
+	}
+	if v := os.Getenv("UCPQA_CORS_ENABLED"); v != "" {
+		cfg.Server.CorsEnabled, _ = strconv.ParseBool(v)
+	}
+	if v := os.Getenv("UCPQA_CORS_ALLOWED_ORIGINS"); v != "" {
+		cfg.Server.CorsAllowedOrigins = strings.Split(v, ",")
+	}
+	if v := os.Getenv("UCPQA_CORS_ALLOWED_METHODS"); v != "" {
+		cfg.Server.CorsAllowedMethods = strings.Split(v, ",")
+	}
+	if v := os.Getenv("UCPQA_CORS_ALLOWED_HEADERS"); v != "" {
+		cfg.Server.CorsAllowedHeaders = strings.Split(v, ",")
 	}
 
 	// Global config

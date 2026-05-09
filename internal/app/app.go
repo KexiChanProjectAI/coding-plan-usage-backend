@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
 	"github.com/quotahub/ucpqa/internal/config"
@@ -122,6 +123,17 @@ func (b *Builder) buildAPIServer(usageHandler *api.UsageHandler, sseHandler *sse
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 	router.Use(b.Metrics.HTTPMiddleware())
+	if b.Config.Server.CorsEnabled {
+		corsConfig := cors.Config{
+			AllowOrigins: b.Config.Server.CorsAllowedOrigins,
+			AllowMethods: b.Config.Server.CorsAllowedMethods,
+			AllowHeaders: b.Config.Server.CorsAllowedHeaders,
+		}
+		if len(corsConfig.AllowMethods) == 0 {
+			corsConfig.AllowMethods = []string{"GET", "OPTIONS"}
+		}
+		router.Use(cors.New(corsConfig))
+	}
 
 	v1 := router.Group("/api/v1")
 	{

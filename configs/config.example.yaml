@@ -4,6 +4,16 @@
 server:
   api_port: 8080        # API server port (REST, SSE, WebSocket)
   metrics_port: 9090    # Prometheus metrics server port
+  # CORS configuration for cross-origin frontend access
+  # cors_enabled: true                                          # Enable CORS (disabled by default)
+  # cors_allowed_origins:                                       # Allowed origins (configure explicitly)
+  #   - "http://localhost:5173"                                 # Local Vite dev server
+  #   - "https://your-pages-domain.pages.dev"                   # Cloudflare Pages deployment
+  # cors_allowed_methods:                                       # HTTP methods allowed (defaults to GET, OPTIONS)
+  #   - "GET"
+  #   - "OPTIONS"
+  # cors_allowed_headers:                                       # Allowed request headers
+  #   - "Content-Type"
 
 global:
   max_stale_duration: 10m  # Quota tiers with reset_at older than this are omitted from snapshots

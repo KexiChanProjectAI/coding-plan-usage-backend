@@ -238,6 +238,83 @@ func TestCompositionAccessors(t *testing.T) {
 	}
 }
 
+func TestAPICORSDisabledDoesNotSetAllowOrigin(t *testing.T) {
+	cfg := &config.Config{
+		Server: config.ServerConfig{
+			APIPort:     18121,
+			MetricsPort: 18122,
+			CorsEnabled: false,
+		},
+		Global: config.GlobalConfig{
+			MaxStaleDuration: 5 * time.Minute,
+		},
+	}
+
+	builder := &Builder{Config: cfg, Store: store.New(), Metrics: metrics.New()}
+	app, err := builder.Build()
+	if err != nil {
+		t.Fatalf("failed to build app: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/usage", nil)
+	req.Header.Set("Origin", "http://localhost:5173")
+	resp := httptest.NewRecorder()
+	app.apiServer.Handler.ServeHTTP(resp, req)
+
+	if got := resp.Header().Get("Access-Control-Allow-Origin"); got != "" {
+		t.Errorf("Access-Control-Allow-Origin = %q, want empty when CORS disabled", got)
+	}
+}
+
+func TestAPICORSEnabledSetsHeadersForGetAndOptions(t *testing.T) {
+	allowedOrigin := "https://frontend.example.com"
+	cfg := &config.Config{
+		Server: config.ServerConfig{
+			APIPort:            18131,
+			MetricsPort:        18132,
+			CorsEnabled:        true,
+			CorsAllowedOrigins: []string{allowedOrigin},
+			CorsAllowedMethods: []string{"GET", "OPTIONS"},
+			CorsAllowedHeaders: []string{"Content-Type", "Authorization"},
+		},
+		Global: config.GlobalConfig{
+			MaxStaleDuration: 5 * time.Minute,
+		},
+	}
+
+	builder := &Builder{Config: cfg, Store: store.New(), Metrics: metrics.New()}
+	app, err := builder.Build()
+	if err != nil {
+		t.Fatalf("failed to build app: %v", err)
+	}
+
+	getReq := httptest.NewRequest(http.MethodGet, "/api/v1/usage", nil)
+	getReq.Header.Set("Origin", allowedOrigin)
+	getResp := httptest.NewRecorder()
+	app.apiServer.Handler.ServeHTTP(getResp, getReq)
+
+	if got := getResp.Header().Get("Access-Control-Allow-Origin"); got != allowedOrigin {
+		t.Errorf("GET Access-Control-Allow-Origin = %q, want %q", got, allowedOrigin)
+	}
+
+	optionsReq := httptest.NewRequest(http.MethodOptions, "/api/v1/usage", nil)
+	optionsReq.Header.Set("Origin", allowedOrigin)
+	optionsReq.Header.Set("Access-Control-Request-Method", "GET")
+	optionsReq.Header.Set("Access-Control-Request-Headers", "Content-Type")
+	optionsResp := httptest.NewRecorder()
+	app.apiServer.Handler.ServeHTTP(optionsResp, optionsReq)
+
+	if optionsResp.Code != http.StatusNoContent {
+		t.Errorf("OPTIONS status = %d, want %d", optionsResp.Code, http.StatusNoContent)
+	}
+	if got := optionsResp.Header().Get("Access-Control-Allow-Origin"); got != allowedOrigin {
+		t.Errorf("OPTIONS Access-Control-Allow-Origin = %q, want %q", got, allowedOrigin)
+	}
+	if got := optionsResp.Header().Get("Access-Control-Allow-Methods"); got == "" {
+		t.Errorf("OPTIONS Access-Control-Allow-Methods is empty, want non-empty")
+	}
+}
+
 func TestCompositionRunAndStop(t *testing.T) {
 	cfg := &config.Config{
 		Server: config.ServerConfig{
