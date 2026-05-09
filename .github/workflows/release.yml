@@ -9,7 +9,38 @@ permissions:
   contents: write
 
 jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+
+      - name: Verify dashboard.html exists
+        run: test -f internal/web/dashboard.html
+
+      - name: Check React 19.2 ESM markers
+        run: |
+          grep -q 'esm.sh/react@19.2.0' internal/web/dashboard.html
+          grep -q 'esm.sh/react-dom@19.2.0/client' internal/web/dashboard.html
+
+      - name: Reject UMD React paths
+        run: |
+          ! grep -q '/umd/' internal/web/dashboard.html
+
+      - name: Run Go tests
+        run: go test ./...
+
+      - name: Build and verify embedded dashboard
+        run: |
+          go build -o ucpqa ./cmd/api
+          strings ./ucpqa | grep -q 'QuotaHub Dashboard'
+          strings ./ucpqa | grep -q 'esm.sh/react@19.2.0'
+
   build:
+    needs: verify
     strategy:
       matrix:
         include:
@@ -39,7 +70,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: ucpqa-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: ucpqa-${{ github.ref_name }}-*.tar.gz
+          path: ucpqa-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
 
   release:
     needs: build
