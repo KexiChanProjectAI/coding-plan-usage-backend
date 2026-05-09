@@ -4,9 +4,7 @@ import './theme.css'
 export type ColorScheme = 'light' | 'dark'
 
 export function Md3ThemeProvider({ children }: PropsWithChildren) {
-  const [scheme, setScheme] = useState<ColorScheme>(() =>
-    window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
-  )
+  const [scheme, setScheme] = useState<ColorScheme>('dark')
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)')

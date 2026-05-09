@@ -8,6 +8,8 @@ interface QuotaBlockProps {
 
 export function QuotaBlock({ quota }: QuotaBlockProps) {
   const percentageText = quota.percentage !== null ? `${Math.round(quota.percentage)}%` : 'N/A'
+  const remainingPercentage = quota.percentage !== null ? 100 - quota.percentage : 0
+  const remainingPercentageText = quota.percentage !== null ? `${Math.round(remainingPercentage)}%` : 'N/A'
   const usedTotalText = `${quota.used} / ${quota.total}`
   const severityLabel = quota.severity === 'critical' ? 'Critical' : quota.severity === 'warning' ? 'Warning' : ''
   const resetText = quota.isUnavailable ? 'Unavailable' : formatResetTime(quota.resetAt)
@@ -24,10 +26,10 @@ export function QuotaBlock({ quota }: QuotaBlockProps) {
       </div>
       <Md3ProgressBar
         severity={quota.severity}
-        value={quota.percentage ?? 0}
+        value={remainingPercentage}
         max={100}
         className="quota-block__progress"
-        aria-label={`${quota.tier} quota usage: ${percentageText}`}
+        aria-label={`${quota.tier} quota remaining: ${remainingPercentageText}`}
       />
       <div className="quota-block__numbers">
         <span className="quota-block__used-total">{usedTotalText}</span>

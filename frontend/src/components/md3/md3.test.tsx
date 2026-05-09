@@ -54,15 +54,15 @@ describe('Md3ThemeProvider', () => {
     )
 
     const wrapper = screen.getByTestId('child').parentElement
-    expect(wrapper).toHaveAttribute('data-md3-scheme', 'light')
+    expect(wrapper).toHaveAttribute('data-md3-scheme', 'dark')
 
     const changeHandler = mql.addEventListener.mock.calls.find(
       (call) => call[0] === 'change',
     )?.[1] as (e: MediaQueryListEvent) => void
 
-    changeHandler?.({ matches: true } as MediaQueryListEvent)
+    changeHandler?.({ matches: false } as MediaQueryListEvent)
     await new Promise((resolve) => setTimeout(resolve, 0))
-    expect(wrapper).toHaveAttribute('data-md3-scheme', 'dark')
+    expect(wrapper).toHaveAttribute('data-md3-scheme', 'light')
   })
 })
 
