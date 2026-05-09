@@ -14,16 +14,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.26'
-
-      - name: Run Go tests
-        run: go test ./...
-
-      - name: Build Go binary
-        run: go build -o ucpqa ./cmd/api
-
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -37,8 +27,18 @@ jobs:
       - name: Frontend tests
         run: cd frontend && npm test -- --run
 
-      - name: Frontend build
+      - name: Build frontend (required for Go embed)
         run: cd frontend && npm run build
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+
+      - name: Run Go tests
+        run: go test ./...
+
+      - name: Build Go binary
+        run: go build -o ucpqa ./cmd/api
 
   build:
     needs: verify
@@ -52,6 +52,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+
+      - name: Build frontend (required for Go embed)
+        run: cd frontend && npm run build
 
       - uses: actions/setup-go@v5
         with:

@@ -1,4 +1,4 @@
-.PHONY: test test-race test-bench lint build clean tidy verify frontend-install frontend-typecheck frontend-test frontend-build verify-all
+.PHONY: test test-race test-bench lint build build-all clean tidy verify frontend-install frontend-typecheck frontend-test frontend-build verify-all
 
 # Binary name
 BINARY_NAME=ucpqa
@@ -37,10 +37,14 @@ lint:
 build:
 	$(GOBUILD) -o $(BINARY_NAME) $(MAIN_PATH)
 
+# Build frontend then Go binary (includes embedded SPA)
+build-all: frontend-build build
+
 # Clean build artifacts
 clean:
 	rm -f $(BINARY_NAME)
 	go clean
+	cd frontend && rm -rf dist
 
 # Tidy dependencies
 tidy:

@@ -2,12 +2,15 @@ package app
 
 import (
 	"context"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/quotahub/ucpqa/frontend"
 	"github.com/quotahub/ucpqa/internal/config"
 	"github.com/quotahub/ucpqa/internal/infrastructure/metrics"
 	"github.com/quotahub/ucpqa/internal/infrastructure/store"
@@ -236,6 +239,163 @@ func TestCompositionAccessors(t *testing.T) {
 	if app.SyncManager() != nil {
 		t.Error("SyncManager() should be nil when not provided")
 	}
+}
+
+func TestSPAHandlerServesIndexHTML(t *testing.T) {
+	if !frontendBuilt() {
+		t.Skip("frontend dist/index.html not embedded; run frontend build first")
+	}
+
+	app := newTestApp(t, 18121, 18122)
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	resp := httptest.NewRecorder()
+	app.apiServer.Handler.ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusOK {
+		t.Fatalf("GET / returned %d, want 200", resp.Code)
+	}
+	if !strings.Contains(resp.Body.String(), "Coding Plans") {
+		t.Fatalf("GET / response does not contain expected app content")
+	}
+	if got := resp.Header().Get("Cache-Control"); got != "no-cache" {
+		t.Fatalf("GET / Cache-Control = %q, want %q", got, "no-cache")
+	}
+}
+
+func TestSPAHandlerServesAssets(t *testing.T) {
+	if !frontendBuilt() {
+		t.Skip("frontend dist/index.html not embedded; run frontend build first")
+	}
+
+	assetPath, ok := firstEmbeddedAssetPath(t)
+	if !ok {
+		t.Skip("no embedded /assets/ file found in frontend dist")
+	}
+
+	app := newTestApp(t, 18123, 18124)
+	req := httptest.NewRequest(http.MethodGet, assetPath, nil)
+	resp := httptest.NewRecorder()
+	app.apiServer.Handler.ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusOK {
+		t.Fatalf("GET %s returned %d, want 200", assetPath, resp.Code)
+	}
+	if got := resp.Header().Get("Cache-Control"); got != "public, max-age=31536000, immutable" {
+		t.Fatalf("GET %s Cache-Control = %q, want immutable asset cache", assetPath, got)
+	}
+}
+
+func TestSPAHandlerFallbackToIndexHTML(t *testing.T) {
+	if !frontendBuilt() {
+		t.Skip("frontend dist/index.html not embedded; run frontend build first")
+	}
+
+	app := newTestApp(t, 18125, 18126)
+	req := httptest.NewRequest(http.MethodGet, "/some/spa/route", nil)
+	resp := httptest.NewRecorder()
+	app.apiServer.Handler.ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusOK {
+		t.Fatalf("GET /some/spa/route returned %d, want 200", resp.Code)
+	}
+	if !strings.Contains(resp.Body.String(), "Coding Plans") {
+		t.Fatalf("SPA fallback response does not contain index.html content")
+	}
+}
+
+func TestSPAAPIPathsReturn404(t *testing.T) {
+	app := newTestApp(t, 18127, 18128)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/nonexistent", nil)
+	resp := httptest.NewRecorder()
+	app.apiServer.Handler.ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusNotFound {
+		t.Fatalf("GET /api/v1/nonexistent returned %d, want 404", resp.Code)
+	}
+	body := resp.Body.String()
+	if strings.Contains(strings.ToLower(body), "<html") {
+		t.Fatalf("expected JSON 404 for API path, got HTML body")
+	}
+	if !strings.Contains(body, "not found") {
+		t.Fatalf("expected not found JSON body, got %q", body)
+	}
+}
+
+func TestSPAHandlerNoFrontendBuilt(t *testing.T) {
+	// The embedded dist always contains dist/.gitkeep to keep compilation working.
+	// In that state (no built index.html), SPA fallback must return 404 JSON.
+	if frontendBuilt() {
+		t.Skip("frontend index.html is embedded; cannot simulate no-frontend-built state in this binary")
+	}
+
+	app := newTestApp(t, 18129, 18130)
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	resp := httptest.NewRecorder()
+	app.apiServer.Handler.ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusNotFound {
+		t.Fatalf("GET / returned %d, want 404 when frontend not built", resp.Code)
+	}
+	if !strings.Contains(resp.Body.String(), "frontend not built") {
+		t.Fatalf("expected frontend not built message, got %q", resp.Body.String())
+	}
+}
+
+func newTestApp(t *testing.T, apiPort, metricsPort int) *Composition {
+	t.Helper()
+
+	builder := &Builder{
+		Config: &config.Config{
+			Server: config.ServerConfig{
+				APIPort:     apiPort,
+				MetricsPort: metricsPort,
+			},
+			Global: config.GlobalConfig{MaxStaleDuration: 5 * time.Minute},
+		},
+		Store:   store.New(),
+		Metrics: metrics.New(),
+	}
+
+	app, err := builder.Build()
+	if err != nil {
+		t.Fatalf("failed to build app: %v", err)
+	}
+	return app
+}
+
+func frontendBuilt() bool {
+	distFS, err := fs.Sub(frontend.DistFS, "dist")
+	if err != nil {
+		return false
+	}
+	_, err = fs.Stat(distFS, "index.html")
+	return err == nil
+}
+
+func firstEmbeddedAssetPath(t *testing.T) (string, bool) {
+	t.Helper()
+
+	distFS, err := fs.Sub(frontend.DistFS, "dist")
+	if err != nil {
+		return "", false
+	}
+
+	entries, err := fs.ReadDir(distFS, "assets")
+	if err != nil {
+		return "", false
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if strings.HasSuffix(name, ".js") || strings.HasSuffix(name, ".css") {
+			return "/assets/" + name, true
+		}
+	}
+
+	return "", false
 }
 
 func TestAPICORSDisabledDoesNotSetAllowOrigin(t *testing.T) {

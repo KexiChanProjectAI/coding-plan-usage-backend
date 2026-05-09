@@ -4,13 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/fs"
 	"log"
 	"net/http"
+	"path"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
+	"github.com/quotahub/ucpqa/frontend"
 	"github.com/quotahub/ucpqa/internal/config"
 	"github.com/quotahub/ucpqa/internal/domain"
 	"github.com/quotahub/ucpqa/internal/infrastructure/metrics"
@@ -142,9 +148,104 @@ func (b *Builder) buildAPIServer(usageHandler *api.UsageHandler, sseHandler *sse
 	}
 	router.GET("/ws", wsHandler.WSHandler())
 
+	distFS, err := fs.Sub(frontend.DistFS, "dist")
+	if err != nil {
+		log.Printf("[app] failed to access embedded frontend dist: %v", err)
+	} else {
+		registerSPARoutes(router, distFS)
+	}
+
 	return &http.Server{
 		Addr:    fmt.Sprintf(":%d", b.Config.Server.APIPort),
 		Handler: router,
+	}
+}
+
+func registerSPARoutes(router *gin.Engine, distFS fs.FS) {
+	router.NoRoute(func(c *gin.Context) {
+		requestPath := c.Request.URL.Path
+		cleanedPath := strings.TrimPrefix(path.Clean("/"+requestPath), "/")
+
+		if strings.HasPrefix(requestPath, "/api/") || requestPath == "/ws" || requestPath == "/metrics" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+			return
+		}
+
+		if filepath.Ext(cleanedPath) != "" {
+			serveEmbeddedFile(c, distFS, cleanedPath)
+			return
+		}
+
+		serveIndexHTML(c, distFS)
+	})
+}
+
+func serveEmbeddedFile(c *gin.Context, distFS fs.FS, filePath string) {
+	file, err := distFS.Open(filePath)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+	defer file.Close()
+
+	fileInfo, err := file.Stat()
+	if err != nil || fileInfo.IsDir() {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+
+	content, err := io.ReadAll(file)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read frontend file"})
+		return
+	}
+
+	if strings.HasPrefix(filePath, "assets/") {
+		c.Header("Cache-Control", "public, max-age=31536000, immutable")
+	} else {
+		c.Header("Cache-Control", "public, max-age=3600")
+	}
+	contentType := http.DetectContentType(content)
+	if ext := filepath.Ext(filePath); ext != "" {
+		if byExt := mimeTypeByExt(ext); byExt != "" {
+			contentType = byExt
+		}
+	}
+	c.Data(http.StatusOK, contentType, content)
+}
+
+func serveIndexHTML(c *gin.Context, distFS fs.FS) {
+	file, err := distFS.Open("index.html")
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "frontend not built"})
+		return
+	}
+	defer file.Close()
+
+	content, err := io.ReadAll(file)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read frontend index"})
+		return
+	}
+
+	c.Header("Cache-Control", "no-cache")
+	c.Data(http.StatusOK, "text/html; charset=utf-8", content)
+}
+
+func mimeTypeByExt(ext string) string {
+	switch strings.ToLower(ext) {
+	case ".js", ".mjs":
+		return "application/javascript; charset=utf-8"
+	case ".css":
+		return "text/css; charset=utf-8"
+	case ".html":
+		return "text/html; charset=utf-8"
+	case ".json":
+		return "application/json; charset=utf-8"
+	case ".svg":
+		return "image/svg+xml"
+	default:
+		return ""
 	}
 }
 
