@@ -2,1025 +2,736 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-  <meta name="theme-color" content="#0a0a0f">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1c1b1f">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>QuotaHub Dashboard</title>
+  <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@19.2.0",
+        "react-dom/client": "https://esm.sh/react-dom@19.2.0/client"
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      /* Background & Surface */
-      --bg-primary: #0a0a0f;
-      --bg-secondary: #12121a;
-      --surface-glass: rgba(255, 255, 255, 0.05);
-      --surface-glass-hover: rgba(255, 255, 255, 0.08);
-      --border-glass: rgba(255, 255, 255, 0.1);
+      /* MD3 Dark Theme - Tonal Palette */
+      --md-sys-color-primary: #d0bcff;
+      --md-sys-color-on-primary: #381e72;
+      --md-sys-color-primary-container: #4f378b;
+      --md-sys-color-on-primary-container: #eaddff;
+      --md-sys-color-secondary: #ccc2dc;
+      --md-sys-color-on-secondary: #332d41;
+      --md-sys-color-secondary-container: #4a4458;
+      --md-sys-color-on-secondary-container: #e8def8;
+      --md-sys-color-tertiary: #efb8c8;
+      --md-sys-color-on-tertiary: #492532;
+      --md-sys-color-tertiary-container: #633b48;
+      --md-sys-color-on-tertiary-container: #ffd8e4;
+      --md-sys-color-error: #f2b8b5;
+      --md-sys-color-on-error: #601410;
+      --md-sys-color-error-container: #8c1d18;
+      --md-sys-color-on-error-container: #f9dedc;
+      --md-sys-color-surface: #1c1b1f;
+      --md-sys-color-surface-dim: #141218;
+      --md-sys-color-surface-bright: #3b383e;
+      --md-sys-color-surface-container-lowest: #0f0d13;
+      --md-sys-color-surface-container-low: #1c1b1f;
+      --md-sys-color-surface-container: #211f26;
+      --md-sys-color-surface-container-high: #2b2930;
+      --md-sys-color-surface-container-highest: #36343b;
+      --md-sys-color-on-surface: #e6e1e5;
+      --md-sys-color-on-surface-variant: #cac4d0;
+      --md-sys-color-outline: #938f99;
+      --md-sys-color-outline-variant: #49454f;
 
-      /* Text */
-      --text-primary: #ffffff;
-      --text-secondary: rgba(255, 255, 255, 0.7);
-      --text-muted: rgba(255, 255, 255, 0.4);
+      /* MD3 Elevation (surface tint at 5% opacity layers) */
+      --md-elevation-1: 0px 1px 3px 1px rgba(0,0,0,0.15), 0px 1px 2px 0px rgba(0,0,0,0.3);
+      --md-elevation-2: 0px 2px 6px 2px rgba(0,0,0,0.15), 0px 1px 2px 0px rgba(0,0,0,0.3);
+      --md-elevation-3: 0px 4px 8px 3px rgba(0,0,0,0.15), 0px 1px 3px 0px rgba(0,0,0,0.3);
 
-      /* Progress Bar Colors - 5H (Blue → Cyan) */
-      --progress-5h-start: #3b82f6;
-      --progress-5h-end: #06b6d4;
-      --progress-5h-glow: rgba(6, 182, 212, 0.5);
+      /* MD3 Shape */
+      --md-shape-xs: 4px;
+      --md-shape-sm: 8px;
+      --md-shape-md: 12px;
+      --md-shape-lg: 16px;
+      --md-shape-xl: 28px;
 
-      /* Progress Bar Colors - 7D (Green → Lime) */
-      --progress-7d-start: #22c55e;
-      --progress-7d-end: #a3e635;
-      --progress-7d-glow: rgba(163, 230, 53, 0.5);
+      /* MD3 Typography Scale */
+      --md-text-display: 2.25rem;
+      --md-text-headline: 1.75rem;
+      --md-text-title-lg: 1.375rem;
+      --md-text-title-md: 1rem;
+      --md-text-title-sm: 0.875rem;
+      --md-text-body-lg: 1rem;
+      --md-text-body-md: 0.875rem;
+      --md-text-body-sm: 0.75rem;
+      --md-text-label-lg: 0.875rem;
+      --md-text-label-md: 0.75rem;
+      --md-text-label-sm: 0.6875rem;
 
-      /* Progress Bar Colors - 1M (Purple → Pink) */
-      --progress-1m-start: #a855f7;
-      --progress-1m-end: #ec4899;
-      --progress-1m-glow: rgba(236, 72, 153, 0.5);
+      /* Spacing */
+      --md-space-xs: 4px;
+      --md-space-sm: 8px;
+      --md-space-md: 12px;
+      --md-space-lg: 16px;
+      --md-space-xl: 24px;
+      --md-space-2xl: 32px;
 
-      /* Low Warning - Orange → Yellow */
-      --progress-low-start: #f97316;
-      --progress-low-end: #eab308;
-      --progress-low-glow: rgba(234, 179, 8, 0.5);
-
-      /* Critical - Red → Pink */
-      --progress-critical-start: #ef4444;
-      --progress-critical-end: #ec4899;
-      --progress-critical-glow: rgba(236, 72, 153, 0.6);
-
-      /* MD3 Spacing */
-      --space-xs: 4px;
-      --space-sm: 8px;
-      --space-md: 16px;
-      --space-lg: 24px;
-      --space-xl: 32px;
-
-      /* Typography Scale */
-      --text-caption: 12px;
-      --text-body: 14px;
-      --text-subtitle: 16px;
-      --text-title: 20px;
-      --text-headline: 24px;
-
-      /* Border Radius */
-      --radius-sm: 8px;
-      --radius-md: 12px;
-      --radius-lg: 16px;
-      --radius-xl: 24px;
-
-      /* Safe Area */
-      --safe-left: env(safe-area-inset-left, 0px);
+      /* Progress colors (MD3 tonal) */
+      --progress-5h: #81d4fa;
+      --progress-5h-container: #0d3c4f;
+      --progress-1w: #a5d6a7;
+      --progress-1w-container: #1b3e1f;
+      --progress-1m: #ce93d8;
+      --progress-1m-container: #3e1e4a;
+      --progress-low: #ffcc80;
+      --progress-low-container: #4a2e0a;
+      --progress-critical: #ef9a9a;
+      --progress-critical-container: #4a1a1a;
     }
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     html, body {
-      height: 100vh;
-      height: 100dvh;
-      overflow: hidden;
+      height: 100%;
+      background: var(--md-sys-color-surface-dim);
+      color: var(--md-sys-color-on-surface);
+      font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-      background: var(--bg-primary);
-      background-image: radial-gradient(ellipse at 20% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
-                        radial-gradient(ellipse at 80% 80%, rgba(168, 85, 247, 0.08) 0%, transparent 50%),
-                        radial-gradient(ellipse at 50% 50%, rgba(6, 182, 212, 0.05) 0%, transparent 70%);
-      color: var(--text-primary);
-      height: 100vh;
-      height: 100dvh;
-      padding: var(--space-md);
-      padding-left: calc(var(--space-md) + var(--safe-left));
-      padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
+    /* Scrollbar styling */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--md-sys-color-outline-variant); border-radius: 3px; }
+
+    /* Layout */
+    .app-root {
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
-      gap: var(--space-md);
     }
 
-    /* Header */
-    .header {
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(28, 27, 31, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--md-sys-color-outline-variant);
+      padding: var(--md-space-md) var(--md-space-xl);
+    }
+
+    .app-header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
       display: flex;
+      align-items: center;
       justify-content: space-between;
-      align-items: flex-start;
-      gap: var(--space-md);
+      gap: var(--md-space-md);
     }
 
-    .header-left {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-xs);
-    }
-
-    .header-title {
-      font-size: var(--text-headline);
+    .app-header-title {
+      font-size: var(--md-text-title-lg);
       font-weight: 600;
-      letter-spacing: -0.5px;
+      letter-spacing: -0.02em;
+      color: var(--md-sys-color-on-surface);
     }
 
-    .header-subtitle {
-      font-size: var(--text-body);
-      color: var(--text-secondary);
-    }
-
-    .header-right {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: var(--space-sm);
-    }
-
-    .header-actions {
+    .app-header-meta {
       display: flex;
       align-items: center;
-      gap: var(--space-md);
-    }
-
-    .refresh-btn {
-      width: 44px;
-      height: 44px;
-      border-radius: var(--radius-md);
-      background: var(--surface-glass);
-      border: 1px solid var(--border-glass);
-      color: var(--text-primary);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
-      backdrop-filter: blur(10px);
-    }
-
-    .refresh-btn:hover {
-      background: var(--surface-glass-hover);
-      transform: scale(1.05);
-    }
-
-    .refresh-btn:active {
-      transform: scale(0.95);
-    }
-
-    .refresh-btn svg {
-      width: 20px;
-      height: 20px;
-      transition: transform 0.3s ease;
-    }
-
-    .refresh-btn.spinning svg {
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
+      gap: var(--md-space-md);
     }
 
     .last-updated {
-      font-size: var(--text-caption);
-      color: var(--text-muted);
+      font-size: var(--md-text-label-md);
+      color: var(--md-sys-color-on-surface-variant);
     }
 
-    .time-badge {
-      font-size: var(--text-caption);
-      color: var(--text-secondary);
-      background: var(--surface-glass);
-      padding: var(--space-xs) var(--space-sm);
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-glass);
-      font-variant-numeric: tabular-nums;
+    .refresh-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      background: var(--md-sys-color-surface-container-high);
+      color: var(--md-sys-color-on-surface);
+      cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
     }
 
-    /* Plan Cards Container */
-    .plans-container {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-sm);
-      overflow: hidden;
+    .refresh-btn:hover { background: var(--md-sys-color-surface-container-highest); }
+    .refresh-btn:active { transform: scale(0.95); }
+    .refresh-btn.spinning svg { animation: spin 1s linear infinite; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .app-main {
       flex: 1;
-      min-height: 0;
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+      padding: var(--md-space-xl);
     }
 
-    /* Plan Card */
-    .plan-card {
-      background: var(--surface-glass);
-      border: 1px solid var(--border-glass);
-      border-radius: var(--radius-lg);
-      padding: var(--space-sm) var(--space-md);
-      backdrop-filter: blur(20px);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-      transition: all 0.3s ease;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-      flex: 1;
-    }
-
-    .plan-card:hover {
-      background: var(--surface-glass-hover);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-    }
-
-    .plan-header {
+    /* State banners */
+    .state-banner {
+      border-radius: var(--md-shape-md);
+      padding: var(--md-space-lg);
+      margin-bottom: var(--md-space-xl);
       display: flex;
       align-items: center;
-      gap: var(--space-sm);
-      margin-bottom: var(--space-xs);
-      flex-shrink: 0;
+      gap: var(--md-space-md);
     }
 
-    .plan-avatar {
-      width: 28px;
-      height: 28px;
+    .state-banner.error {
+      background: var(--md-sys-color-error-container);
+      color: var(--md-sys-color-on-error-container);
+    }
+
+    .state-banner.empty {
+      background: var(--md-sys-color-surface-container-high);
+      color: var(--md-sys-color-on-surface-variant);
+      justify-content: center;
+      flex-direction: column;
+      text-align: center;
+      padding: var(--md-space-2xl);
+    }
+
+    .state-banner-title {
+      font-size: var(--md-text-title-sm);
+      font-weight: 600;
+    }
+
+    .state-banner-msg {
+      font-size: var(--md-text-body-sm);
+      opacity: 0.9;
+    }
+
+    .retry-btn {
+      margin-left: auto;
+      padding: var(--md-space-sm) var(--md-space-lg);
+      border-radius: var(--md-shape-sm);
+      border: 1px solid var(--md-sys-color-outline);
+      background: transparent;
+      color: inherit;
+      font-size: var(--md-text-label-lg);
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .retry-btn:hover { background: rgba(255,255,255,0.06); }
+
+    /* Provider Card */
+    .provider-card {
+      background: var(--md-sys-color-surface-container);
+      border-radius: var(--md-shape-lg);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      margin-bottom: var(--md-space-lg);
+      overflow: hidden;
+      transition: box-shadow 0.2s, border-color 0.2s;
+    }
+
+    .provider-card:hover {
+      box-shadow: var(--md-elevation-2);
+      border-color: var(--md-sys-color-outline);
+    }
+
+    .provider-header {
+      display: flex;
+      align-items: center;
+      gap: var(--md-space-md);
+      padding: var(--md-space-lg);
+      border-bottom: 1px solid var(--md-sys-color-outline-variant);
+    }
+
+    .provider-avatar {
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 12px;
+      font-size: var(--md-text-title-sm);
       font-weight: 600;
-      color: white;
       flex-shrink: 0;
-      text-transform: uppercase;
+      background: var(--md-sys-color-primary-container);
+      color: var(--md-sys-color-on-primary-container);
     }
 
-    .plan-info {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: var(--space-sm);
-      min-width: 0;
+    .provider-info {
       flex: 1;
+      min-width: 0;
     }
 
-    .plan-name {
-      font-size: var(--text-subtitle);
+    .provider-name {
+      font-size: var(--md-text-title-sm);
       font-weight: 600;
+      color: var(--md-sys-color-on-surface);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      flex-shrink: 0;
     }
 
-    .plan-badge {
+    .provider-alias {
+      font-size: var(--md-text-label-md);
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    .status-chip {
       display: inline-flex;
       align-items: center;
-      padding: 2px var(--space-xs);
-      border-radius: var(--radius-sm);
-      font-size: 10px;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: var(--md-shape-sm);
+      font-size: var(--md-text-label-md);
       font-weight: 500;
-      width: fit-content;
       flex-shrink: 0;
     }
 
-    .plan-meta {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: var(--space-sm);
-      margin-left: auto;
-      flex-shrink: 0;
-    }
-
-    .plan-meta-item {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 2px;
-    }
-
-    .plan-meta-label {
-      font-size: 9px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .plan-meta-value {
-      font-size: var(--text-caption);
-      font-weight: 600;
-      color: var(--text-secondary);
-    }
-
-    .plan-badge.healthy {
-      background: rgba(34, 197, 94, 0.2);
-      color: #4ade80;
-      border: 1px solid rgba(34, 197, 94, 0.3);
-    }
-
-    .plan-badge.warning {
-      background: rgba(234, 179, 8, 0.2);
-      color: #facc15;
-      border: 1px solid rgba(234, 179, 8, 0.3);
-    }
-
-    .plan-badge.critical {
-      background: rgba(239, 68, 68, 0.2);
-      color: #f87171;
-      border: 1px solid rgba(239, 68, 68, 0.3);
-    }
-
-    /* Quota Grid */
-    .quota-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: var(--space-sm);
-      flex: 1;
-      min-height: 0;
-    }
-
-    .quota-block {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      padding: var(--space-sm);
-      background: rgba(0, 0, 0, 0.2);
-      border-radius: var(--radius-md);
-      min-width: 0;
-    }
-
-    .quota-block.empty {
-      opacity: 0.3;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .quota-label {
-      font-size: 10px;
-      color: var(--text-muted);
-      font-weight: 500;
-      letter-spacing: 0.5px;
-    }
-
-    .quota-remaining {
-      font-size: var(--text-body);
-      font-weight: 600;
-      white-space: nowrap;
-    }
-
-    .quota-percentage {
-      font-size: 10px;
-      color: var(--text-secondary);
-    }
-
-    .progress-container {
-      height: 6px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 3px;
-      overflow: hidden;
-      position: relative;
-      margin-top: auto;
-    }
-
-    .progress-bar {
-      height: 100%;
-      border-radius: 5px;
-      transition: none;
-      position: relative;
-    }
-
-    .progress-bar::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-      animation: shimmer 2s infinite;
-    }
-
-    @keyframes shimmer {
-      0% { transform: translateX(-100%); }
-      100% { transform: translateX(100%); }
-    }
-
-    .progress-bar.glow {
-      filter: drop-shadow(0 0 6px var(--glow-color, rgba(255, 255, 255, 0.3)));
-    }
-
-    /* Progress Bar Color Classes */
-    .progress-5h {
-      background: linear-gradient(90deg, var(--progress-5h-start), var(--progress-5h-end));
-      --glow-color: var(--progress-5h-glow);
-    }
-
-    .progress-7d {
-      background: linear-gradient(90deg, var(--progress-7d-start), var(--progress-7d-end));
-      --glow-color: var(--progress-7d-glow);
-    }
-
-    .progress-1m {
-      background: linear-gradient(90deg, var(--progress-1m-start), var(--progress-1m-end));
-      --glow-color: var(--progress-1m-glow);
-    }
-
-    .progress-low {
-      background: linear-gradient(90deg, var(--progress-low-start), var(--progress-low-end));
-      --glow-color: var(--progress-low-glow);
-    }
-
-    .progress-critical {
-      background: linear-gradient(90deg, var(--progress-critical-start), var(--progress-critical-end));
-      --glow-color: var(--progress-critical-glow);
-    }
-
-    /* Legend */
-    .legend {
-      display: flex;
-      justify-content: center;
-      gap: var(--space-md);
-      padding: var(--space-sm) var(--space-md);
-      background: var(--surface-glass);
-      border: 1px solid var(--border-glass);
-      border-radius: var(--radius-md);
-      backdrop-filter: blur(10px);
-      flex-wrap: wrap;
-      flex-shrink: 0;
-    }
-
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: var(--space-sm);
-      font-size: var(--text-caption);
-      color: var(--text-secondary);
-    }
-
-    .legend-dot {
-      width: 12px;
-      height: 12px;
+    .status-chip .dot {
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
     }
 
-    .legend-dot.high {
-      background: linear-gradient(135deg, #22c55e, #4ade80);
+    .status-chip.healthy { background: var(--progress-1w-container); color: var(--progress-1w); }
+    .status-chip.healthy .dot { background: var(--progress-1w); }
+    .status-chip.warning { background: var(--progress-low-container); color: var(--progress-low); }
+    .status-chip.warning .dot { background: var(--progress-low); }
+    .status-chip.critical { background: var(--progress-critical-container); color: var(--progress-critical); }
+    .status-chip.critical .dot { background: var(--progress-critical); }
+    .status-chip.unknown { background: var(--md-sys-color-surface-container-high); color: var(--md-sys-color-on-surface-variant); }
+    .status-chip.unknown .dot { background: var(--md-sys-color-outline); }
+
+    /* Quotas Grid */
+    .quotas-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--md-space-md);
+      padding: var(--md-space-lg);
     }
 
-    .legend-dot.medium {
-      background: linear-gradient(135deg, #3b82f6, #06b6d4);
+    .quota-item {
+      background: var(--md-sys-color-surface-container-low);
+      border-radius: var(--md-shape-md);
+      padding: var(--md-space-md);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      transition: background 0.2s;
     }
 
-    .legend-dot.low {
-      background: linear-gradient(135deg, #f97316, #eab308);
+    .quota-item:hover { background: var(--md-sys-color-surface-container-high); }
+
+    .quota-item.empty {
+      opacity: 0.5;
     }
 
-    .legend-dot.critical {
-      background: linear-gradient(135deg, #ef4444, #ec4899);
+    .quota-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--md-space-sm);
     }
 
-    /* Loading Skeleton */
+    .quota-label {
+      font-size: var(--md-text-label-sm);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    .quota-pct {
+      font-size: var(--md-text-label-sm);
+      font-weight: 600;
+    }
+
+    .quota-pct.critical { color: var(--progress-critical); }
+    .quota-pct.warning { color: var(--progress-low); }
+    .quota-pct.ok { color: var(--md-sys-color-on-surface-variant); }
+
+    .progress-track {
+      height: 8px;
+      border-radius: var(--md-shape-xs);
+      background: var(--md-sys-color-surface-container-highest);
+      overflow: hidden;
+      margin-bottom: var(--md-space-sm);
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: var(--md-shape-xs);
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .progress-fill.q5h { background: var(--progress-5h); }
+    .progress-fill.q1w { background: var(--progress-1w); }
+    .progress-fill.q1m { background: var(--progress-1m); }
+    .progress-fill.critical { background: var(--progress-critical); }
+    .progress-fill.warning { background: var(--progress-low); }
+
+    .quota-nums {
+      display: flex;
+      justify-content: space-between;
+      font-size: var(--md-text-label-sm);
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    .quota-meta {
+      margin-top: var(--md-space-sm);
+      padding-top: var(--md-space-sm);
+      border-top: 1px solid var(--md-sys-color-outline-variant);
+      display: flex;
+      justify-content: space-between;
+      font-size: var(--md-text-label-sm);
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    /* Footer row inside card */
+    .provider-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--md-space-md) var(--md-space-lg);
+      background: var(--md-sys-color-surface-container-low);
+      border-top: 1px solid var(--md-sys-color-outline-variant);
+      font-size: var(--md-text-label-sm);
+      color: var(--md-sys-color-on-surface-variant);
+      gap: var(--md-space-md);
+      flex-wrap: wrap;
+    }
+
+    .provider-footer span {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Skeleton */
     .skeleton {
-      background: linear-gradient(90deg,
-        var(--surface-glass) 25%,
-        rgba(255, 255, 255, 0.1) 50%,
-        var(--surface-glass) 75%);
+      background: linear-gradient(90deg, var(--md-sys-color-surface-container-high) 25%, var(--md-sys-color-surface-container-highest) 50%, var(--md-sys-color-surface-container-high) 75%);
       background-size: 200% 100%;
-      animation: skeleton-loading 1.5s infinite;
-      border-radius: var(--radius-md);
+      animation: skeleton-shimmer 1.5s infinite;
+      border-radius: var(--md-shape-sm);
     }
 
-    @keyframes skeleton-loading {
+    @keyframes skeleton-shimmer {
       0% { background-position: 200% 0; }
       100% { background-position: -200% 0; }
     }
 
     .skeleton-card {
       height: 180px;
-    }
-
-    .skeleton-header {
-      display: flex;
-      gap: var(--space-md);
-      margin-bottom: var(--space-lg);
-    }
-
-    .skeleton-avatar {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-    }
-
-    .skeleton-text {
-      flex: 1;
-    }
-
-    .skeleton-text-row {
-      height: 16px;
-      margin-bottom: var(--space-sm);
-    }
-
-    .skeleton-text-row:last-child {
-      width: 60%;
-      margin-bottom: 0;
-    }
-
-    .skeleton-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: var(--space-md);
-    }
-
-    .skeleton-quota {
-      height: 100px;
-      border-radius: var(--radius-lg);
-    }
-
-    /* Error Banner */
-    .error-banner {
-      background: rgba(239, 68, 68, 0.15);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      border-radius: var(--radius-lg);
-      padding: var(--space-md);
-      display: flex;
-      align-items: center;
-      gap: var(--space-md);
-      color: #f87171;
-    }
-
-    .error-banner svg {
-      width: 24px;
-      height: 24px;
-      flex-shrink: 0;
-    }
-
-    .error-banner-content {
-      flex: 1;
-    }
-
-    .error-banner-title {
-      font-weight: 600;
-      margin-bottom: var(--space-xs);
-    }
-
-    .error-banner-message {
-      font-size: var(--text-caption);
-      opacity: 0.8;
-    }
-
-    .retry-btn {
-      padding: var(--space-sm) var(--space-md);
-      background: rgba(239, 68, 68, 0.2);
-      border: 1px solid rgba(239, 68, 68, 0.4);
-      border-radius: var(--radius-sm);
-      color: #f87171;
-      cursor: pointer;
-      font-size: var(--text-caption);
-      transition: all 0.2s;
-    }
-
-    .retry-btn:hover {
-      background: rgba(239, 68, 68, 0.3);
+      border-radius: var(--md-shape-lg);
+      margin-bottom: var(--md-space-lg);
     }
 
     /* Responsive */
-    @media (max-width: 600px) {
-      body {
-        padding: var(--space-sm);
-        padding-left: calc(var(--space-sm) + var(--safe-left));
-      }
-
-      .header {
-        flex-direction: column;
-        gap: var(--space-sm);
-      }
-
-      .header-right {
-        align-items: flex-start;
-        flex-direction: row;
-        flex-wrap: wrap;
-      }
-
-      .quota-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: var(--space-xs);
-      }
-
-      .plan-card {
-        padding: var(--space-xs) var(--space-sm);
-      }
-
-      .legend {
-        gap: var(--space-sm);
-        padding: var(--space-xs) var(--space-sm);
-      }
-
-      .plans-container {
-        gap: var(--space-xs);
-      }
+    @media (max-width: 720px) {
+      .app-header { padding: var(--md-space-md); }
+      .app-main { padding: var(--md-space-md); }
+      .quotas-grid { grid-template-columns: 1fr; gap: var(--md-space-sm); padding: var(--md-space-md); }
+      .provider-header { padding: var(--md-space-md); }
+      .provider-footer { padding: var(--md-space-md); flex-direction: column; align-items: flex-start; gap: var(--md-space-xs); }
     }
 
-    @media (min-width: 800px) {
-      .quota-grid {
-        grid-template-columns: repeat(3, 1fr);
-      }
-    }
-
-    /* Desktop adjustments for ultra-wide feel */
-    @media (min-width: 1200px) {
-      body {
-        max-width: 1400px;
-        margin: 0 auto;
-      }
+    @media (min-width: 721px) and (max-width: 1024px) {
+      .quotas-grid { grid-template-columns: repeat(3, 1fr); }
     }
   </style>
 </head>
 <body>
-  <header class="header">
-    <div class="header-left">
-      <h1 class="header-title">Coding Plans</h1>
-      <p class="header-subtitle">Overview of your coding plan usage</p>
-    </div>
-    <div class="header-right">
-      <div class="header-actions">
-        <button class="refresh-btn" id="refreshBtn" aria-label="Refresh data">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        </button>
-        <div class="time-badge" id="timeBadge">--:--:--</div>
-      </div>
-      <span class="last-updated" id="lastUpdated">Last updated: --</span>
-    </div>
-  </header>
+  <div id="root"></div>
 
-  <main class="plans-container" id="plansContainer">
-    
-  </main>
+  <script type="text/babel" data-type="module">
+    import React, { useState, useEffect, useCallback, useRef } from 'react';
+    import { createRoot } from 'react-dom/client';
 
-  <footer class="legend">
-    <div class="legend-item">
-      <span class="legend-dot high"></span>
-      <span>High 70–100%</span>
-    </div>
-    <div class="legend-item">
-      <span class="legend-dot medium"></span>
-      <span>Medium 30–70%</span>
-    </div>
-    <div class="legend-item">
-      <span class="legend-dot low"></span>
-      <span>Low 10–30%</span>
-    </div>
-    <div class="legend-item">
-      <span class="legend-dot critical"></span>
-      <span>Critical 0–10%</span>
-    </div>
-  </footer>
+    /* ---------- Utilities ---------- */
+    const API_URL = (() => {
+      const origin = typeof location !== 'undefined' ? location.origin : '';
+      if (origin.includes('100.64.1.38:8070')) return '/api/v1/usage';
+      return 'http://100.64.1.38:8070/api/v1/usage';
+    })();
 
-  <script>
-    const API_URL = '/api/v1/usage';
-    const REFRESH_INTERVAL = 1000;
-
-    const quotaTypeMap = {
-      '5H': '5H',
-      '1W': '7D',
-      '1M': '1M'
-    };
-
-    const quotaOrder = ['5H', '7D', '1M'];
-
-    let lastFetchTime = null;
-    let refreshTimer = null;
-
-    // DOM Elements
-    const plansContainer = document.getElementById('plansContainer');
-    const refreshBtn = document.getElementById('refreshBtn');
-    const lastUpdatedEl = document.getElementById('lastUpdated');
-    const timeBadge = document.getElementById('timeBadge');
-
-    // Initialize
-    document.addEventListener('DOMContentLoaded', () => {
-      updateTime();
-      setInterval(updateTime, 1000);
-      fetchData();
-      startAutoRefresh();
-      requestFullscreen();
-      requestWakeLock();
-    });
-
-    async function requestFullscreen() {
-      const el = document.documentElement;
-      try {
-        if (el.requestFullscreen) await el.requestFullscreen();
-        else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
-        else if (el.msRequestFullscreen) await el.msRequestFullscreen();
-      } catch (e) {
-        console.warn('Fullscreen request failed:', e);
-      }
+    function hashString(str) {
+      let h = 0;
+      for (let i = 0; i < str.length; i++) h = (h << 5) - h + str.charCodeAt(i);
+      return Math.abs(h);
     }
 
-    let wakeLock = null;
-    async function requestWakeLock() {
-      try {
-        if ('wakeLock' in navigator) {
-          wakeLock = await navigator.wakeLock.request('screen');
-          wakeLock.addEventListener('release', () => {
-            console.log('Wake Lock released');
-          });
-          document.addEventListener('visibilitychange', async () => {
-            if (document.visibilityState === 'visible' && !wakeLock) {
-              wakeLock = await navigator.wakeLock.request('screen');
-            }
-          });
-        }
-      } catch (e) {
-        console.warn('Wake Lock request failed:', e);
-      }
-    }
-
-    refreshBtn.addEventListener('click', () => {
-      fetchData(true);
-    });
-
-    function updateTime() {
-      const now = new Date();
-      timeBadge.textContent = now.toLocaleTimeString('en-US', {
-        hour12: false,
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-      });
-    }
-
-    function startAutoRefresh() {
-      if (refreshTimer) clearInterval(refreshTimer);
-      refreshTimer = setInterval(() => fetchData(), REFRESH_INTERVAL);
-    }
-
-    function getTimeAgo(date) {
-      if (!date) return '--';
-      const seconds = Math.floor((new Date() - date) / 1000);
-      if (seconds < 60) return `${seconds}s ago`;
-      const minutes = Math.floor(seconds / 60);
-      if (minutes < 60) return `${minutes}m ago`;
-      const hours = Math.floor(minutes / 60);
-      return `${hours}h ago`;
-    }
-
-    function formatDuration(used, total, resetAt) {
-      const percentage = Math.round(((total - used) / total) * 100);
-      const clampedPercentage = Math.max(0, Math.min(100, percentage));
-      // Invalid reset date means no reset (INF)
-      if (!resetAt || resetAt === '0001-01-01T00:00:00Z') {
-        return `INF · ${clampedPercentage}%`;
-      }
-      const resetDate = new Date(resetAt);
-      const now = new Date();
-      const diffMs = resetDate - now;
-      if (diffMs > 0) {
-        const diffMins = Math.ceil(diffMs / 60000);
-        const h = Math.floor(diffMins / 60);
-        const m = diffMins % 60;
-        if (h > 0) return `${h}h ${m}m · ${clampedPercentage}%`;
-        return `${m}m · ${clampedPercentage}%`;
-      }
-      return `${clampedPercentage}% left`;
-    }
-
-    function getProgressClass(percentage, quotaType) {
-      if (percentage <= 10) return 'critical';
-      if (percentage <= 30) return 'low';
-      return `progress-${quotaType.toLowerCase().replace('7d', '7d')}`;
-    }
-
-    function getProgressColorClass(percentage, quotaType) {
-      if (percentage <= 10) return 'progress-critical';
-      if (percentage <= 30) return 'progress-low';
-      return `progress-${quotaType.toLowerCase().replace('7d', '7d')}`;
-    }
-
-    function getAvatarColor(platform) {
-      const colors = [
-        '#3b82f6', '#8b5cf6', '#ec4899', '#f97316',
-        '#22c55e', '#06b6d4', '#eab308', '#ef4444'
+    function avatarColor(name) {
+      const palette = [
+        ['#4f378b', '#eaddff'],
+        ['#0d4f4f', '#a7f3d0'],
+        ['#4a1a3a', '#fbcfe8'],
+        ['#4a2e0a', '#fde68a'],
+        ['#1a2e4a', '#bfdbfe'],
+        ['#1a3a1a', '#bbf7d0'],
       ];
-      let hash = 0;
-      for (let i = 0; i < platform.length; i++) {
-        hash = platform.charCodeAt(i) + ((hash << 5) - hash);
-      }
-      return colors[Math.abs(hash) % colors.length];
+      return palette[hashString(name || '') % palette.length];
     }
 
-    function getStatusClass(status) {
-      if (!status) return 'healthy';
-      const s = status.toLowerCase();
+    function getStatusChip(status) {
+      const s = (status || '').toLowerCase();
       if (s === 'healthy' || s === 'active') return 'healthy';
       if (s === 'warning' || s === 'limited') return 'warning';
-      return 'critical';
+      if (s === 'critical' || s === 'error' || s === 'down') return 'critical';
+      return 'unknown';
     }
 
     function formatStatusLabel(status) {
-      if (!status) return 'Unknown';
-      return status.charAt(0).toUpperCase() + status.slice(1) + ' Plan';
+      const s = (status || '').toLowerCase();
+      if (s === 'healthy' || s === 'active') return 'Healthy';
+      if (s === 'warning' || s === 'limited') return 'Warning';
+      if (s === 'critical' || s === 'error' || s === 'down') return 'Critical';
+      return 'Unknown';
     }
 
-    function renderLoadingSkeletons() {
-      plansContainer.innerHTML = `
-        <div class="skeleton-card skeleton" style="height: 200px;"></div>
-        <div class="skeleton-card skeleton" style="height: 200px;"></div>
-        <div class="skeleton-card skeleton" style="height: 200px;"></div>
-      `;
+    function fmtDate(iso) {
+      if (!iso || iso.startsWith('0001-01-01')) return '—';
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '—';
+      return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     }
 
-    function renderError(message, isManual = false) {
-      const errorHTML = `
-        <div class="error-banner">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <div class="error-banner-content">
-            <div class="error-banner-title">Failed to load data</div>
-            <div class="error-banner-message">${message}</div>
-          </div>
-          ${isManual ? '' : `<button class="retry-btn" onclick="fetchData()">Retry</button>`}
-        </div>
-        ${renderSampleCards()}
-      `;
-      plansContainer.innerHTML = errorHTML;
+    function timeAgo(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '—';
+      const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+      if (diff < 60) return 'just now';
+      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+      return `${Math.floor(diff / 86400)}d ago`;
     }
 
-    function renderSampleCards() {
-      return `
-        <div class="plan-card">
-          <div class="plan-header">
-            <div class="plan-avatar" style="background: linear-gradient(135deg, #3b82f6, #8b5cf6);">S</div>
-            <div class="plan-info">
-              <div class="plan-name">Sample Plan</div>
-              <span class="plan-badge healthy">Pro Plan</span>
-            </div>
-          </div>
-          <div class="quota-grid">
-            <div class="quota-block">
-              <span class="quota-label">5H</span>
-              <span class="quota-remaining">-- remaining</span>
-              <span class="quota-percentage">--%</span>
-              <div class="progress-container">
-                <div class="progress-bar progress-5h" style="width: 0%;"></div>
-              </div>
-            </div>
-            <div class="quota-block">
-              <span class="quota-label">7D</span>
-              <span class="quota-remaining">-- remaining</span>
-              <span class="quota-percentage">--%</span>
-              <div class="progress-container">
-                <div class="progress-bar progress-7d" style="width: 0%;"></div>
-              </div>
-            </div>
-            <div class="quota-block empty">
-              <span class="quota-label">1M</span>
-              <span class="quota-remaining">—</span>
-            </div>
-          </div>
-        </div>
-      `;
+    function pct(used, total) {
+      if (!total || total <= 0) return 0;
+      const p = (used / total) * 100;
+      return Math.min(100, Math.max(0, p));
     }
 
-    function renderPlans(data) {
-      if (!Array.isArray(data) || data.length === 0) {
-        plansContainer.innerHTML = `
-          <div class="error-banner">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div class="error-banner-content">
-              <div class="error-banner-title">No data available</div>
-              <div class="error-banner-message">No usage data found. Check back later.</div>
+    function pctClass(p) {
+      if (p >= 90) return 'critical';
+      if (p >= 70) return 'warning';
+      return 'ok';
+    }
+
+    /* ---------- Components ---------- */
+
+    function IconRefresh({ size = 20 }) {
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="23 4 23 10 17 10" />
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+        </svg>
+      );
+    }
+
+    function IconAlert({ size = 24 }) {
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
+      );
+    }
+
+    function IconInbox({ size = 40 }) {
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.6">
+          <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
+          <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
+        </svg>
+      );
+    }
+
+    function QuotaBlock({ label, data }) {
+      if (!data || !data.total) {
+        return (
+          <div className="quota-item empty" aria-label={`${label} quota unavailable`}>
+            <div className="quota-header">
+              <span className="quota-label">{label}</span>
+              <span className="quota-pct ok">—</span>
             </div>
+            <div className="progress-track"><div className="progress-fill" style={{ width: '0%' }} /></div>
+            <div className="quota-nums"><span>—</span><span>—</span></div>
+            <div className="quota-meta"><span>Reset —</span></div>
           </div>
-        `;
-        return;
+        );
       }
+      const p = pct(data.used, data.total);
+      const cls = pctClass(p);
+      const fillCls = cls === 'ok' ? (label === '5H' ? 'q5h' : label === '1W' ? 'q1w' : 'q1m') : cls;
+      return (
+        <div className="quota-item" aria-label={`${label} quota ${Math.round(p)} percent used`}>
+          <div className="quota-header">
+            <span className="quota-label">{label}</span>
+            <span className={`quota-pct ${cls}`}>{Math.round(p)}%</span>
+          </div>
+          <div className="progress-track">
+            <div className={`progress-fill ${fillCls}`} style={{ width: `${p}%` }} />
+          </div>
+          <div className="quota-nums">
+            <span>{data.used} used</span>
+            <span>{data.total} total</span>
+          </div>
+          <div className="quota-meta">
+            <span>Reset {fmtDate(data.reset_at)}</span>
+          </div>
+        </div>
+      );
+    }
 
-      const sortedData = [...data].sort((a, b) => {
-        const nameA = (a.platform || '').toLowerCase();
-        const nameB = (b.platform || '').toLowerCase();
-        return nameA.localeCompare(nameB);
-      });
+    function ProviderCard({ provider }) {
+      const [bg, fg] = avatarColor(provider.platform);
+      const chip = getStatusChip(provider.status);
+      return (
+        <article className="provider-card" aria-label={`Provider ${provider.platform}`}>
+          <div className="provider-header">
+            <div className="provider-avatar" style={{ background: bg, color: fg }} aria-hidden="true">
+              {(provider.platform || '?').charAt(0).toUpperCase()}
+            </div>
+            <div className="provider-info">
+              <div className="provider-name">{provider.platform}</div>
+              <div className="provider-alias">{provider.account_alias || 'default'}</div>
+            </div>
+            <span className={`status-chip ${chip}`} role="status" aria-label={`Status ${formatStatusLabel(provider.status)}`}>
+              <span className="dot" aria-hidden="true" />
+              {formatStatusLabel(provider.status)}
+            </span>
+          </div>
+          <div className="quotas-grid">
+            <QuotaBlock label="5H" data={provider.quotas?.['5H']} />
+            <QuotaBlock label="1W" data={provider.quotas?.['1W']} />
+            <QuotaBlock label="1M" data={provider.quotas?.['1M']} />
+          </div>
+          <div className="provider-footer">
+            <span>Last sync: {timeAgo(provider.last_sync)}</span>
+            <span>Version: {provider.version ?? '—'}</span>
+          </div>
+        </article>
+      );
+    }
 
-      // Build new DOM off-screen to avoid jitter
-      const fragment = document.createDocumentFragment();
-      const wrapper = document.createElement('div');
-      wrapper.style.display = 'contents';
-      wrapper.innerHTML = sortedData.map(plan => {
-        const platformName = plan.platform || 'Unknown';
-        const avatarColor = getAvatarColor(platformName);
-        const status = plan.status || 'healthy';
-        const statusClass = getStatusClass(status);
-        const statusLabel = formatStatusLabel(status);
+    function SkeletonCard() {
+      return <div className="skeleton skeleton-card" aria-hidden="true" />;
+    }
 
-        const quotas = plan.quotas || {};
+    function App() {
+      const [data, setData] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState(null);
+      const [lastFetch, setLastFetch] = useState(null);
+      const [spinning, setSpinning] = useState(false);
+      const abortRef = useRef(null);
 
-        const quotaBlocks = quotaOrder.map(type => {
-          const displayType = type;
-          const apiType = type === '7D' ? '1W' : type;
-          const quota = quotas[apiType];
-
-          if (!quota) {
-            return `
-              <div class="quota-block empty">
-                <span class="quota-label">${displayType}</span>
-                <span class="quota-remaining">—</span>
-              </div>
-            `;
+      const fetchData = useCallback(async (manual = false) => {
+        if (manual) setSpinning(true);
+        setLoading(true);
+        setError(null);
+        if (abortRef.current) abortRef.current.abort();
+        const ctrl = new AbortController();
+        abortRef.current = ctrl;
+        try {
+          const res = await fetch(API_URL, { signal: ctrl.signal, cache: 'no-store' });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const json = await res.json();
+          setData(Array.isArray(json) ? json : []);
+          setLastFetch(new Date());
+        } catch (e) {
+          if (e.name !== 'AbortError') {
+            setError(e.message || 'Failed to load data');
           }
-
-          const used = quota.used || 0;
-          const total = quota.total || 1;
-          const percentage = Math.round(((total - used) / total) * 100);
-          const clampedPercentage = Math.max(0, Math.min(100, percentage));
-          const resetAt = quota.reset_at;
-          const remainingText = formatDuration(used, total, resetAt);
-          const colorClass = getProgressColorClass(clampedPercentage, displayType);
-          const isLow = clampedPercentage <= 30;
-
-          return `
-            <div class="quota-block">
-              <span class="quota-label">${displayType}</span>
-              <span class="quota-remaining">${remainingText}</span>
-              <span class="quota-percentage">${clampedPercentage}%</span>
-              <div class="progress-container">
-                <div class="progress-bar ${colorClass} ${isLow ? 'glow' : ''}" style="width: ${clampedPercentage}%;"></div>
-              </div>
-            </div>
-          `;
-        }).join('');
-
-        return `
-          <article class="plan-card">
-            <div class="plan-header">
-              <div class="plan-avatar" style="background: linear-gradient(135deg, ${avatarColor}, ${avatarColor}dd);">
-                ${platformName.charAt(0)}
-              </div>
-              <div class="plan-info">
-                <h2 class="plan-name">${platformName}</h2>
-                <span class="plan-badge ${statusClass}">${statusLabel}</span>
-              </div>
-              <div class="plan-meta">
-                <div class="plan-meta-item">
-                  <span class="plan-meta-label">5H</span>
-                  <span class="plan-meta-value">${(quotas['5H'] ? Math.max(0, Math.min(100, Math.round(((quotas['5H'].total - quotas['5H'].used) / quotas['5H'].total) * 100))) : '—')}%</span>
-                </div>
-                <div class="plan-meta-item">
-                  <span class="plan-meta-label">7D</span>
-                  <span class="plan-meta-value">${(quotas['1W'] ? Math.max(0, Math.min(100, Math.round(((quotas['1W'].total - quotas['1W'].used) / quotas['1W'].total) * 100))) : '—')}%</span>
-                </div>
-                <div class="plan-meta-item">
-                  <span class="plan-meta-label">1M</span>
-                  <span class="plan-meta-value">${(quotas['1M'] ? Math.max(0, Math.min(100, Math.round(((quotas['1M'].total - quotas['1M'].used) / quotas['1M'].total) * 100))) : '—')}%</span>
-                </div>
-              </div>
-            </div>
-            <div class="quota-grid">
-              ${quotaBlocks}
-            </div>
-          </article>
-        `;
-      }).join('');
-      fragment.appendChild(wrapper);
-      plansContainer.innerHTML = '';
-      plansContainer.appendChild(fragment);
-    }
-
-    async function fetchData(isManual = false) {
-      if (isManual) {
-        refreshBtn.classList.add('spinning');
-      }
-
-      try {
-        const response = await fetch(API_URL, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json'
-          },
-          signal: AbortSignal.timeout(10000)
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        } finally {
+          setLoading(false);
+          setSpinning(false);
         }
+      }, []);
 
-        const data = await response.json();
-        lastFetchTime = new Date();
-        lastUpdatedEl.textContent = `Last updated: ${getTimeAgo(lastFetchTime)}`;
+      useEffect(() => {
+        fetchData();
+        const id = setInterval(() => fetchData(), 30000);
+        return () => clearInterval(id);
+      }, [fetchData]);
 
-        renderPlans(data);
-      } catch (error) {
-        console.error('Fetch error:', error);
-        const message = error.name === 'AbortError'
-          ? 'Request timed out. Check your connection.'
-          : error.message || 'Unable to connect to server';
-        renderError(message, isManual);
-      } finally {
-        refreshBtn.classList.remove('spinning');
-      }
+      useEffect(() => {
+        const id = setInterval(() => setLastFetch(d => d), 10000); // force re-render for timeAgo
+        return () => clearInterval(id);
+      }, []);
+
+      return (
+        <div className="app-root">
+          <header className="app-header">
+            <div className="app-header-inner">
+              <h1 className="app-header-title">Coding Plans</h1>
+              <div className="app-header-meta">
+                <span className="last-updated" aria-live="polite">
+                  {lastFetch ? `Updated ${timeAgo(lastFetch.toISOString())}` : 'Loading…'}
+                </span>
+                <button
+                  className={`refresh-btn ${spinning ? 'spinning' : ''}`}
+                  onClick={() => fetchData(true)}
+                  aria-label="Refresh data"
+                  title="Refresh"
+                >
+                  <IconRefresh />
+                </button>
+              </div>
+            </div>
+          </header>
+
+          <main className="app-main">
+            {error && (
+              <div className="state-banner error" role="alert">
+                <IconAlert size={22} />
+                <div>
+                  <div className="state-banner-title">Failed to load data</div>
+                  <div className="state-banner-msg">{error}</div>
+                </div>
+                <button className="retry-btn" onClick={() => fetchData(true)}>Retry</button>
+              </div>
+            )}
+
+            {loading && !data && (
+              <>
+                <SkeletonCard />
+                <SkeletonCard />
+                <SkeletonCard />
+              </>
+            )}
+
+            {!loading && data && data.length === 0 && (
+              <div className="state-banner empty">
+                <IconInbox />
+                <div className="state-banner-title" style={{ marginTop: 12 }}>No providers</div>
+                <div className="state-banner-msg">No usage data available yet.</div>
+              </div>
+            )}
+
+            {data && data.map(p => <ProviderCard key={`${p.platform}-${p.account_alias}`} provider={p} />)}
+          </main>
+        </div>
+      );
     }
 
-    // Update "last updated" text periodically
-    setInterval(() => {
-      if (lastFetchTime) {
-        lastUpdatedEl.textContent = `Last updated: ${getTimeAgo(lastFetchTime)}`;
-      }
-    }, 10000);
+    const root = createRoot(document.getElementById('root'));
+    root.render(<App />);
   </script>
 </body>
 </html>
