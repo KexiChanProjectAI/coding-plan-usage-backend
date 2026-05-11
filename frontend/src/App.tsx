@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Md3ThemeProvider,
   Md3AppShell,
@@ -8,58 +8,36 @@ import {
 import { ProviderCard } from './components/ProviderCard'
 import { EmptyState } from './components/EmptyState'
 import { LoadingSkeleton } from './components/LoadingSkeleton'
-import { normalizeProviders } from './domain/normalize'
 import { formatRelativeLastSync } from './domain/format'
-import { fetchUsage } from './api/client'
-import { useFetchState } from './api/fetch-state'
-import { useRealtimeRefresh } from './api/use-realtime-refresh'
-import type { NormalizedProvider } from './domain/types'
+import { useRealtimeData } from './api/use-realtime-refresh'
 import './App.css'
 
 function Dashboard() {
-  const { state, run } = useFetchState<NormalizedProvider[]>()
-  const [lastSuccessAt, setLastSuccessAt] = useState<Date | null>(null)
+  const { state, refreshState, lastSuccessAt, lastFetchSucceeded, refresh } = useRealtimeData()
   const [now, setNow] = useState(() => new Date())
-  const [refreshStatus, setRefreshStatus] = useState('')
-  const [lastFetchSucceeded, setLastFetchSucceeded] = useState(true)
-
-  const doFetch = useCallback(async () => {
-    const data = await run(async (signal) => {
-      const response = await fetchUsage(signal)
-      return normalizeProviders(response)
-    })
-    if (data) {
-      setLastFetchSucceeded(true)
-      setLastSuccessAt(new Date())
-      return
-    }
-
-    setLastFetchSucceeded(false)
-  }, [run])
-
-  useEffect(() => {
-    doFetch()
-  }, [doFetch])
-
-  useRealtimeRefresh(doFetch, (rtState) => {
-    if (rtState.transport === 'polling') {
-      setRefreshStatus('POLLING (retrying)')
-      return
-    }
-
-    const label = rtState.transport ? rtState.transport.toUpperCase() : 'OFF'
-    setRefreshStatus(rtState.isConnected ? label : `${label} (reconnecting)`)
-  })
 
   useEffect(() => {
     const tick = setInterval(() => setNow(new Date()), 60_000)
     return () => clearInterval(tick)
   }, [])
 
+  const refreshStatus = (() => {
+    if (refreshState.transport === 'polling') {
+      return 'POLLING (retrying)'
+    }
+
+    const label = refreshState.transport ? refreshState.transport.toUpperCase() : 'OFF'
+    return refreshState.isConnected ? label : `${label} (reconnecting)`
+  })()
+
   const isLoadingFirst = state.status === 'idle' || state.status === 'loading'
   const hasError = state.status === 'error'
   const providers = state.data ?? []
   const lastSyncLabel = lastFetchSucceeded ? 'Updated' : 'Last successful update'
+
+  const runRefresh = () => {
+    void refresh()
+  }
 
   const header = (
     <>
@@ -81,7 +59,7 @@ function Dashboard() {
   const fab = (
     <Md3Fab
       aria-label="Refresh quota data"
-      onClick={doFetch}
+      onClick={runRefresh}
       disabled={state.status === 'loading'}
       className={state.status === 'loading' ? 'md3-fab--spinning' : ''}
       data-testid="refresh-fab"
@@ -111,7 +89,7 @@ function Dashboard() {
             <button
               type="button"
               className="md3-button md3-button--outlined"
-              onClick={doFetch}
+              onClick={runRefresh}
               data-testid="retry-button"
             >
               Retry
