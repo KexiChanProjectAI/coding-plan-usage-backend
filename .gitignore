@@ -1,6 +1,7 @@
 # Binaries
 main
 ucpqa
+api
 *.exe
 *.exe~
 *.dll
