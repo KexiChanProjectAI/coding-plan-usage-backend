@@ -23,7 +23,7 @@ describe('useRealtimeRefresh', () => {
 
     await waitFor(() => {
       expect(onStateChange).toHaveBeenCalledWith(
-        expect.objectContaining({ transport: 'polling', isConnected: true }),
+        expect.objectContaining({ transport: 'polling', isConnected: false }),
       )
     })
 
@@ -195,7 +195,7 @@ describe('useRealtimeRefresh', () => {
 
     await waitFor(() => {
       expect(onStateChange).toHaveBeenCalledWith(
-        expect.objectContaining({ transport: 'polling', isConnected: true }),
+        expect.objectContaining({ transport: 'polling', isConnected: false }),
       )
     })
 

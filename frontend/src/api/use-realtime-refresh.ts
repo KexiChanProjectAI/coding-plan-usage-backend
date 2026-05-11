@@ -56,7 +56,7 @@ export function useRealtimeRefresh(
       if (cancelled || polling !== null) {
         return
       }
-      setState({ transport: 'polling', isConnected: true })
+      setState({ transport: 'polling', isConnected: false })
       polling = window.setInterval(() => onRefreshRef.current(), POLLING_INTERVAL_MS)
     }
 

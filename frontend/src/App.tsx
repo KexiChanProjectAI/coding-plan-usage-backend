@@ -21,6 +21,7 @@ function Dashboard() {
   const [lastSuccessAt, setLastSuccessAt] = useState<Date | null>(null)
   const [now, setNow] = useState(() => new Date())
   const [refreshStatus, setRefreshStatus] = useState('')
+  const [lastFetchSucceeded, setLastFetchSucceeded] = useState(true)
 
   const doFetch = useCallback(async () => {
     const data = await run(async (signal) => {
@@ -28,8 +29,12 @@ function Dashboard() {
       return normalizeProviders(response)
     })
     if (data) {
+      setLastFetchSucceeded(true)
       setLastSuccessAt(new Date())
+      return
     }
+
+    setLastFetchSucceeded(false)
   }, [run])
 
   useEffect(() => {
@@ -37,6 +42,11 @@ function Dashboard() {
   }, [doFetch])
 
   useRealtimeRefresh(doFetch, (rtState) => {
+    if (rtState.transport === 'polling') {
+      setRefreshStatus('POLLING (retrying)')
+      return
+    }
+
     const label = rtState.transport ? rtState.transport.toUpperCase() : 'OFF'
     setRefreshStatus(rtState.isConnected ? label : `${label} (reconnecting)`)
   })
@@ -49,13 +59,14 @@ function Dashboard() {
   const isLoadingFirst = state.status === 'idle' || state.status === 'loading'
   const hasError = state.status === 'error'
   const providers = state.data ?? []
+  const lastSyncLabel = lastFetchSucceeded ? 'Updated' : 'Last successful update'
 
   const header = (
     <>
       <h1 className="md3-app-header__title">Coding Plans</h1>
       {lastSuccessAt && (
         <span className="header-last-sync" data-testid="header-last-sync">
-          Updated {formatRelativeLastSync(lastSuccessAt, now)}
+          {lastSyncLabel} {formatRelativeLastSync(lastSuccessAt, now)}
           {refreshStatus && (
             <span className="header-refresh-status" data-testid="header-refresh-status">
               {' '}

@@ -162,6 +162,8 @@ describe('Dashboard', () => {
       expect(screen.getByTestId('provider-card-codex:codex')).toBeInTheDocument()
     })
 
+    expect(screen.getByTestId('header-refresh-status')).toHaveTextContent('POLLING (retrying)')
+
     expect(fetchSpy.mock.calls.length).toBeGreaterThanOrEqual(1)
 
     act(() => {
@@ -188,6 +190,30 @@ describe('Dashboard', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(3)
 
     vi.unstubAllGlobals()
+  })
+
+  it('keeps the last successful timestamp and marks it stale after a failed refresh', async () => {
+    const fetchSpy = vi.spyOn(client, 'fetchUsage')
+      .mockResolvedValueOnce(mockProviders)
+      .mockRejectedValueOnce(new Error('Network error'))
+
+    render(<App />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('provider-card-codex:codex')).toBeInTheDocument()
+    })
+
+    expect(screen.getByTestId('header-last-sync')).toHaveTextContent('Updated')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Refresh quota data' }))
+
+    await waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalledTimes(2)
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('header-last-sync')).toHaveTextContent('Last successful update')
+    })
   })
 
   it('manual refresh triggers fetch and updates timestamp after success', async () => {
