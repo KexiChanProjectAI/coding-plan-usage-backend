@@ -21,6 +21,7 @@ import (
 	"github.com/quotahub/ucpqa/internal/domain"
 	"github.com/quotahub/ucpqa/internal/infrastructure/metrics"
 	"github.com/quotahub/ucpqa/internal/infrastructure/store"
+	"github.com/quotahub/ucpqa/internal/runtime/broadcaster"
 	"github.com/quotahub/ucpqa/internal/runtime/syncmanager"
 	"github.com/quotahub/ucpqa/internal/transport/http/api"
 	"github.com/quotahub/ucpqa/internal/transport/sse"
@@ -59,6 +60,22 @@ func (b *Builder) Build() (*Composition, error) {
 
 	wsHub := ws.NewHub(refreshAllProviders)
 	wsHandler := ws.NewHandler(wsHub, ws.Upgrader)
+	usageHandler := api.NewUsageHandler(b.Store, b.Config.Global.MaxStaleDuration)
+
+	publishCurrentUsage := func() {
+		payload, err := json.Marshal(api.StreamBatchMessage{
+			Type: "batch",
+			Data: usageHandler.Responses(),
+		})
+		if err != nil {
+			log.Printf("[app] failed to marshal realtime usage batch: %v", err)
+			return
+		}
+
+		sseBroker.Publish(payload)
+		wsHub.Broadcast(payload)
+	}
+	batchBroadcaster := broadcaster.New(time.Second, publishCurrentUsage)
 
 	previousOnUpdate := b.Store.OnUpdate
 	b.Store.OnUpdate = func(snapshot domain.AccountSnapshot) {
@@ -66,27 +83,9 @@ func (b *Builder) Build() (*Composition, error) {
 			previousOnUpdate(snapshot)
 		}
 
-		rawSnapshotBytes, err := json.Marshal(snapshot)
-		if err != nil {
-			log.Printf("[app] failed to marshal snapshot for platform %q: %v", snapshot.Platform, err)
-			return
-		}
-
-		eventBytes, err := json.Marshal(sse.Event{
-			Version:  snapshot.Version,
-			Snapshot: json.RawMessage(rawSnapshotBytes),
-		})
-		if err != nil {
-			log.Printf("[app] failed to marshal stream event for platform %q: %v", snapshot.Platform, err)
-			return
-		}
-
-		sseBroker.Publish(eventBytes)
-		wsHub.Broadcast(rawSnapshotBytes)
+		publishCurrentUsage()
 		b.Metrics.UpdateFromSnapshot(snapshot)
 	}
-
-	usageHandler := api.NewUsageHandler(b.Store, b.Config.Global.MaxStaleDuration)
 
 	apiServer := b.buildAPIServer(usageHandler, sseHandler, wsHandler)
 	metricsServer := b.buildMetricsServer()
@@ -107,6 +106,7 @@ func (b *Builder) Build() (*Composition, error) {
 		sseHandler:    sseHandler,
 		wsHub:         wsHub,
 		wsHandler:     wsHandler,
+		broadcaster:   batchBroadcaster,
 		syncManager:   b.SyncManager,
 		apiServer:     apiServer,
 		metricsServer: metricsServer,
@@ -270,6 +270,7 @@ type Composition struct {
 	sseHandler          *sse.Handler
 	wsHub               *ws.Hub
 	wsHandler           *ws.Handler
+	broadcaster         *broadcaster.Broadcaster
 	syncManager         *syncmanager.SyncManager
 	apiServer           *http.Server
 	metricsServer       *http.Server
@@ -292,6 +293,14 @@ func (c *Composition) Run(ctx context.Context) error {
 		c.sseBroker.Run()
 		log.Println("[app] SSE broker stopped")
 	}()
+
+	if c.broadcaster != nil {
+		go func() {
+			log.Println("[app] starting realtime broadcaster")
+			c.broadcaster.Start(ctx)
+			log.Println("[app] realtime broadcaster stopped")
+		}()
+	}
 
 	if c.syncManager != nil {
 		go func() {

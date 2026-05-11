@@ -46,6 +46,19 @@ func (s *Store) Get(platform string) (domain.AccountSnapshot, bool) {
 	return cloneSnapshot(*snap), true
 }
 
+// GetAll returns clones of all current snapshots.
+func (s *Store) GetAll() []domain.AccountSnapshot {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	snapshots := make([]domain.AccountSnapshot, 0, len(s.snapshots))
+	for _, snapshot := range s.snapshots {
+		snapshots = append(snapshots, cloneSnapshot(*snapshot))
+	}
+
+	return snapshots
+}
+
 // Update atomically updates the snapshot for the given platform.
 // It sets LastSync to the current time and increments the Version.
 // If the platform does not exist, a new snapshot is created.

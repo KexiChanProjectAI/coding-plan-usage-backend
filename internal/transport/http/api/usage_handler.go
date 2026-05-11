@@ -16,6 +16,11 @@ type UsageResponse struct {
 	Status domain.Status `json:"status"`
 }
 
+type StreamBatchMessage struct {
+	Type string          `json:"type"`
+	Data []UsageResponse `json:"data"`
+}
+
 // UsageHandler handles usage-related HTTP requests.
 type UsageHandler struct {
 	store           *store.Store
@@ -33,20 +38,20 @@ func NewUsageHandler(store *store.Store, maxStaleDuration time.Duration) *UsageH
 // GetUsage handles GET /api/v1/usage.
 // It returns a JSON array of all account snapshots with their derived status.
 func (h *UsageHandler) GetUsage(c *gin.Context) {
-	platforms := h.store.Platforms()
+	c.JSON(http.StatusOK, h.Responses())
+}
 
-	// Fresh-start empty store: return initializing status
+// Responses returns the current usage payload for both HTTP and realtime transports.
+func (h *UsageHandler) Responses() []UsageResponse {
+	platforms := h.store.Platforms()
 	if len(platforms) == 0 {
-		c.JSON(http.StatusOK, []UsageResponse{
-			{
-				AccountSnapshot: domain.AccountSnapshot{
-					Platform: "",
-					Version:  0,
-				},
-				Status: domain.StatusInitializing,
+		return []UsageResponse{{
+			AccountSnapshot: domain.AccountSnapshot{
+				Platform: "",
+				Version:  0,
 			},
-		})
-		return
+			Status: domain.StatusInitializing,
+		}}
 	}
 
 	responses := make([]UsageResponse, 0, len(platforms))
@@ -55,14 +60,14 @@ func (h *UsageHandler) GetUsage(c *gin.Context) {
 		if !ok {
 			continue
 		}
-		status := domain.DeriveStatus(snapshot, h.maxStaleDuration)
+
 		responses = append(responses, UsageResponse{
 			AccountSnapshot: snapshot,
-			Status:          status,
+			Status:          domain.DeriveStatus(snapshot, h.maxStaleDuration),
 		})
 	}
 
-	c.JSON(http.StatusOK, responses)
+	return responses
 }
 
 // RegisterRoutes registers the usage handler routes on the given router group.
