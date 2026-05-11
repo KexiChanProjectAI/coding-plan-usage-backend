@@ -1,5 +1,16 @@
 export const UNLIMITED_LABEL = '无限制/INF'
 
+export function formatLastSyncTimestamp(lastSync: Date | null, locale?: string): string {
+  if (!lastSync) {
+    return 'never'
+  }
+
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(lastSync)
+}
+
 export function formatRelativeLastSync(lastSync: Date | null, now = new Date()): string {
   if (!lastSync) {
     return 'never'

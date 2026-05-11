@@ -9,6 +9,7 @@ import type {
 } from './types'
 
 const CANONICAL_TIERS: BackendTier[] = ['5H', '1W', '1M']
+const providerSortCollator = new Intl.Collator(undefined, { sensitivity: 'base' })
 
 export function mapProviderStatus(status?: string): ProviderStatus {
   switch (status?.toLowerCase()) {
@@ -119,5 +120,18 @@ export function normalizeProviders(providers: UsageResponse[]): NormalizedProvid
         version: provider.version,
         quotas: normalizedQuotas,
       }
+    })
+    .sort((left, right) => {
+      const platformOrder = providerSortCollator.compare(left.platform, right.platform)
+      if (platformOrder !== 0) {
+        return platformOrder
+      }
+
+      const aliasOrder = providerSortCollator.compare(left.accountAlias, right.accountAlias)
+      if (aliasOrder !== 0) {
+        return aliasOrder
+      }
+
+      return providerSortCollator.compare(left.key, right.key)
     })
 }

@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import {
   Md3ThemeProvider,
   Md3AppShell,
@@ -8,18 +7,12 @@ import {
 import { ProviderCard } from './components/ProviderCard'
 import { EmptyState } from './components/EmptyState'
 import { LoadingSkeleton } from './components/LoadingSkeleton'
-import { formatRelativeLastSync } from './domain/format'
+import { formatLastSyncTimestamp } from './domain/format'
 import { useRealtimeData } from './api/use-realtime-refresh'
 import './App.css'
 
 function Dashboard() {
   const { state, refreshState, lastSuccessAt, lastFetchSucceeded, refresh } = useRealtimeData()
-  const [now, setNow] = useState(() => new Date())
-
-  useEffect(() => {
-    const tick = setInterval(() => setNow(new Date()), 60_000)
-    return () => clearInterval(tick)
-  }, [])
 
   const refreshStatus = (() => {
     if (refreshState.transport === 'polling') {
@@ -44,7 +37,7 @@ function Dashboard() {
       <h1 className="md3-app-header__title">Coding Plans</h1>
       {lastSuccessAt && (
         <span className="header-last-sync" data-testid="header-last-sync">
-          {lastSyncLabel} {formatRelativeLastSync(lastSuccessAt, now)}
+          {lastSyncLabel} {formatLastSyncTimestamp(lastSuccessAt)}
           {refreshStatus && (
             <span className="header-refresh-status" data-testid="header-refresh-status">
               {' '}

@@ -87,6 +87,20 @@ describe('Dashboard', () => {
     expect(screen.getAllByTestId('quota-1M')).toHaveLength(2)
   })
 
+  it('renders providers in deterministic alphabetical order', async () => {
+    vi.spyOn(client, 'fetchUsage').mockResolvedValue([mockProviders[1], mockProviders[0]])
+
+    render(<App />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('provider-card-codex:codex')).toBeInTheDocument()
+    })
+
+    const providerCards = screen.getAllByTestId(/provider-card-/)
+    expect(providerCards[0]).toHaveAttribute('data-testid', 'provider-card-codex:codex')
+    expect(providerCards[1]).toHaveAttribute('data-testid', 'provider-card-kimi:work')
+  })
+
   it('shows error banner with retry button on fetch failure', async () => {
     vi.spyOn(client, 'fetchUsage').mockRejectedValue(new Error('Network error'))
 
@@ -204,6 +218,7 @@ describe('Dashboard', () => {
     })
 
     expect(screen.getByTestId('header-last-sync')).toHaveTextContent('Updated')
+    expect(screen.getByTestId('header-last-sync')).not.toHaveTextContent('just now')
 
     await userEvent.click(screen.getByRole('button', { name: 'Refresh quota data' }))
 

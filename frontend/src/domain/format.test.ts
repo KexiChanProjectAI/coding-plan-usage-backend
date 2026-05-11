@@ -1,5 +1,21 @@
 import { describe, expect, it } from 'vitest'
-import { formatRelativeLastSync, formatResetTime, UNLIMITED_LABEL } from './format'
+import { formatLastSyncTimestamp, formatRelativeLastSync, formatResetTime, UNLIMITED_LABEL } from './format'
+
+describe('formatLastSyncTimestamp', () => {
+  it('returns never when null', () => {
+    expect(formatLastSyncTimestamp(null)).toBe('never')
+  })
+
+  it('returns formatted timestamp for valid date', () => {
+    const lastSync = new Date('2026-01-01T15:30:00.000Z')
+    const expected = new Intl.DateTimeFormat('en-US', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(lastSync)
+
+    expect(formatLastSyncTimestamp(lastSync, 'en-US')).toBe(expected)
+  })
+})
 
 describe('formatRelativeLastSync', () => {
   const now = new Date('2026-01-01T00:00:00.000Z')
