@@ -19,10 +19,23 @@ import (
 	"github.com/quotahub/ucpqa/internal/domain"
 	"github.com/quotahub/ucpqa/internal/infrastructure/metrics"
 	"github.com/quotahub/ucpqa/internal/infrastructure/store"
+	"github.com/quotahub/ucpqa/internal/transport/http/api"
 )
 
 func init() {
 	gin.SetMode(gin.TestMode)
+}
+
+func decodeBatchMessage(t *testing.T, msg []byte) api.StreamBatchMessage {
+	t.Helper()
+
+	var batch api.StreamBatchMessage
+	err := json.Unmarshal(msg, &batch)
+	require.NoError(t, err)
+	require.Equal(t, "batch", batch.Type)
+	require.NotEmpty(t, batch.Data)
+
+	return batch
 }
 
 func TestWebSocketRefreshAndMetricsExposure(t *testing.T) {
@@ -154,19 +167,14 @@ func TestWebSocketReceivesBroadcastAfterStoreUpdate(t *testing.T) {
 	}
 
 	st.Update(snapshot)
-	msgBytes, _ := json.Marshal(snapshot)
-	wsHub.Broadcast(msgBytes)
 
 	conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
 	_, msg, err := conn.ReadMessage()
 	require.NoError(t, err)
 
-	var received map[string]interface{}
-	err = json.Unmarshal(msg, &received)
-	require.NoError(t, err)
-
-	assert.Equal(t, "broadcast-provider", received["platform"])
-	assert.Equal(t, float64(1), received["version"])
+	batch := decodeBatchMessage(t, msg)
+	assert.Equal(t, "broadcast-provider", batch.Data[0].Platform)
+	assert.Equal(t, int64(1), batch.Data[0].Version)
 }
 
 func TestWebSocketBroadcastToMultipleClients(t *testing.T) {
@@ -442,11 +450,8 @@ func TestWebSocketMultipleBroadcastsArriveInOrder(t *testing.T) {
 		_, msg, err := conn.ReadMessage()
 		require.NoError(t, err)
 
-		var received map[string]interface{}
-		err = json.Unmarshal(msg, &received)
-		require.NoError(t, err)
-
-		assert.Equal(t, float64(i), received["version"])
+		batch := decodeBatchMessage(t, msg)
+		assert.Equal(t, int64(i), batch.Data[0].Version)
 	}
 }
 
