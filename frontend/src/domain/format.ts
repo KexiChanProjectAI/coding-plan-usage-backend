@@ -1,3 +1,5 @@
+export const UNLIMITED_LABEL = '无限制/INF'
+
 export function formatRelativeLastSync(lastSync: Date | null, now = new Date()): string {
   if (!lastSync) {
     return 'never'
@@ -30,7 +32,19 @@ export function formatRelativeLastSync(lastSync: Date | null, now = new Date()):
 
 export function formatResetTime(resetAt: Date | null, locale?: string): string {
   if (!resetAt) {
-    return 'Unavailable'
+    return UNLIMITED_LABEL
+  }
+
+  if (
+    resetAt.getUTCFullYear() === 1 &&
+    resetAt.getUTCMonth() === 0 &&
+    resetAt.getUTCDate() === 1 &&
+    resetAt.getUTCHours() === 0 &&
+    resetAt.getUTCMinutes() === 0 &&
+    resetAt.getUTCSeconds() === 0 &&
+    resetAt.getUTCMilliseconds() === 0
+  ) {
+    return UNLIMITED_LABEL
   }
 
   return new Intl.DateTimeFormat(locale, {

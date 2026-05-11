@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatRelativeLastSync, formatResetTime } from './format'
+import { formatRelativeLastSync, formatResetTime, UNLIMITED_LABEL } from './format'
 
 describe('formatRelativeLastSync', () => {
   const now = new Date('2026-01-01T00:00:00.000Z')
@@ -30,8 +30,14 @@ describe('formatRelativeLastSync', () => {
 })
 
 describe('formatResetTime', () => {
-  it('returns Unavailable when null', () => {
-    expect(formatResetTime(null)).toBe('Unavailable')
+  it('returns unlimited label when null', () => {
+    expect(formatResetTime(null)).toBe(UNLIMITED_LABEL)
+  })
+
+  it('returns unlimited label for sentinel reset time', () => {
+    const resetAt = new Date('0001-01-01T00:00:00.000Z')
+
+    expect(formatResetTime(resetAt)).toBe(UNLIMITED_LABEL)
   })
 
   it('returns formatted date for valid reset time', () => {
