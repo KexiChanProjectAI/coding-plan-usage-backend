@@ -84,3 +84,14 @@ providers:
     jitter_percent: 10
     backoff_initial: 2s
     backoff_max: 120s
+
+  # sub2api — model quotas API
+  sub2api:
+    type: sub2api
+    name: sub2api
+    base_url: "http://crs.jackllm4sci.online"
+    token: "your-sub2api-token-here"   # REQUIRED
+    refresh_interval: 5m
+    jitter_percent: 10
+    backoff_initial: 2s
+    backoff_max: 120s

@@ -34,7 +34,7 @@ type GlobalConfig struct {
 
 // ProviderConfig holds provider-specific settings.
 type ProviderConfig struct {
-	Type            string          `yaml:"type"`              // Provider type (codex, kimi, minimax, zai, zhipu)
+	Type            string          `yaml:"type"`              // Provider type (codex, kimi, minimax, zai, zhipu, sub2api)
 	Name            string          `yaml:"name"`              // Human-readable alias (kept for backward compat)
 	BaseURL         string          `yaml:"base_url"`
 	Token           string          `yaml:"token"`
@@ -50,6 +50,7 @@ var validProviderTypes = map[string]bool{
 	"minimax": true,
 	"zai":     true,
 	"zhipu":   true,
+	"sub2api": true,
 }
 
 // Validate checks that all required fields are present.
@@ -60,7 +61,7 @@ func (c *Config) Validate() error {
 		}
 		// If Type is not specified, fall back to config key for backward compatibility
 		if prov.Type != "" && !validProviderTypes[strings.ToLower(prov.Type)] {
-			return fmt.Errorf("provider %q has unknown type %q (valid types: codex, kimi, minimax, zai, zhipu)", name, prov.Type)
+			return fmt.Errorf("provider %q has unknown type %q (valid types: codex, kimi, minimax, zai, zhipu, sub2api)", name, prov.Type)
 		}
 	}
 	return nil

@@ -17,6 +17,7 @@ import (
 	"github.com/quotahub/ucpqa/internal/infrastructure/providers/kimi"
 	"github.com/quotahub/ucpqa/internal/infrastructure/providers/minimax"
 	"github.com/quotahub/ucpqa/internal/infrastructure/providers/monitorquota"
+	"github.com/quotahub/ucpqa/internal/infrastructure/providers/sub2api"
 	"github.com/quotahub/ucpqa/internal/infrastructure/store"
 	"github.com/quotahub/ucpqa/internal/runtime/syncmanager"
 )
@@ -58,6 +59,8 @@ func run() error {
 			providers = append(providers, monitorquota.NewZAI(alias, provCfg.BaseURL, provCfg.Token))
 		case "zhipu":
 			providers = append(providers, monitorquota.NewZhipu(alias, provCfg.BaseURL, provCfg.Token))
+		case "sub2api":
+			providers = append(providers, sub2api.New(alias, provCfg.BaseURL, provCfg.Token))
 		default:
 			log.Printf("[main] warning: unknown provider type %q for alias %q, skipping", providerType, alias)
 			continue
