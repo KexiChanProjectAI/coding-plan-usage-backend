@@ -4,7 +4,7 @@ import './theme.css'
 export type ColorScheme = 'light' | 'dark'
 
 export function Md3ThemeProvider({ children }: PropsWithChildren) {
-  return <div data-md3-scheme="dark">{children}</div>
+  return <div data-md3-scheme="dark" style={{ backgroundColor: '#0a0a0f', minHeight: '100vh' }}>{children}</div>
 }
 
 export type Md3ButtonProps = HTMLAttributes<HTMLButtonElement> & {
