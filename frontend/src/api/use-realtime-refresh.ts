@@ -47,6 +47,65 @@ const INITIAL_STATE: DashboardRealtimeState = {
   lastFetchSucceeded: true,
 }
 
+function datesEqual(left: Date | null, right: Date | null): boolean {
+  if (left === right) {
+    return true
+  }
+
+  if (left === null || right === null) {
+    return false
+  }
+
+  return left.getTime() === right.getTime()
+}
+
+function providersEqual(left: NormalizedProvider[] | null, right: NormalizedProvider[]): boolean {
+  if (left === right) {
+    return true
+  }
+
+  if (left === null || left.length !== right.length) {
+    return false
+  }
+
+  for (let providerIndex = 0; providerIndex < left.length; providerIndex += 1) {
+    const previous = left[providerIndex]
+    const next = right[providerIndex]
+
+    if (
+      previous.key !== next.key ||
+      previous.platform !== next.platform ||
+      previous.accountAlias !== next.accountAlias ||
+      previous.status !== next.status ||
+      previous.errorMessage !== next.errorMessage ||
+      !datesEqual(previous.lastSync, next.lastSync) ||
+      previous.version !== next.version ||
+      previous.quotas.length !== next.quotas.length
+    ) {
+      return false
+    }
+
+    for (let quotaIndex = 0; quotaIndex < previous.quotas.length; quotaIndex += 1) {
+      const previousQuota = previous.quotas[quotaIndex]
+      const nextQuota = next.quotas[quotaIndex]
+
+      if (
+        previousQuota.tier !== nextQuota.tier ||
+        previousQuota.used !== nextQuota.used ||
+        previousQuota.total !== nextQuota.total ||
+        previousQuota.percentage !== nextQuota.percentage ||
+        previousQuota.severity !== nextQuota.severity ||
+        !datesEqual(previousQuota.resetAt, nextQuota.resetAt) ||
+        previousQuota.isUnavailable !== nextQuota.isUnavailable
+      ) {
+        return false
+      }
+    }
+  }
+
+  return true
+}
+
 function getSseUrl(baseUrl = API_BASE_URL): string {
   return `${baseUrl}/api/v1/stream`
 }
@@ -241,12 +300,20 @@ export class RealtimeDataFetcher {
   }
 
   private applyUsage(payload: UsageResponse[]) {
+    const normalizedProviders = normalizeProviders(payload)
+    const isUnchangedData =
+      this.state.state.status === 'success' &&
+      this.state.state.error === null &&
+      this.state.lastFetchSucceeded &&
+      providersEqual(this.state.state.data, normalizedProviders)
+    const nextState = {
+      status: 'success' as const,
+      data: isUnchangedData ? this.state.state.data : normalizedProviders,
+      error: null,
+    }
+
     this.patchState({
-      state: {
-        status: 'success',
-        data: normalizeProviders(payload),
-        error: null,
-      },
+      state: nextState,
       lastSuccessAt: new Date(),
       lastFetchSucceeded: true,
     })

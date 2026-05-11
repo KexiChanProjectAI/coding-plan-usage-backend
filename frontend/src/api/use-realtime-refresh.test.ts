@@ -45,6 +45,50 @@ describe('RealtimeDataFetcher', () => {
     fetcher.stop()
   })
 
+  it('keeps provider data stable but refreshes timestamp when incoming usage data is unchanged', async () => {
+    const ws = {
+      close: vi.fn(),
+      onopen: null as (() => void) | null,
+      onmessage: null as ((event: { data: string }) => void) | null,
+      onerror: null as (() => void) | null,
+      onclose: null as (() => void) | null,
+    }
+
+    const fetcher = new RealtimeDataFetcher({
+      fetchUsageImpl: vi.fn().mockResolvedValue(payload),
+      webSocketFactory: () => ws as unknown as WebSocket,
+    })
+    const listener = vi.fn()
+    fetcher.subscribe(listener)
+
+    fetcher.start()
+
+    await waitFor(() => {
+      expect(fetcher.getState().state.status).toBe('success')
+    })
+
+    const previousData = fetcher.getState().state.data
+    const previousLastSuccessAt = fetcher.getState().lastSuccessAt
+
+    listener.mockClear()
+    ws.onopen?.()
+    listener.mockClear()
+
+    act(() => {
+      vi.advanceTimersByTime(1_000)
+    })
+
+    ws.onmessage?.({ data: batchMessage(payload) })
+
+    expect(listener).toHaveBeenCalledTimes(1)
+    expect(fetcher.getState().state.data).toBe(previousData)
+    expect(fetcher.getState().lastSuccessAt?.getTime()).toBeGreaterThan(
+      previousLastSuccessAt?.getTime() ?? 0,
+    )
+
+    fetcher.stop()
+  })
+
   it('prefers WebSocket when it connects before SSE starts', async () => {
     const ws = {
       close: vi.fn(),
