@@ -1,18 +1,18 @@
 import type { NormalizedQuota } from '../domain/types'
 import { Md3ProgressBar } from './md3'
-import { formatResetTime } from '../domain/format'
+import { formatResetTime, UNLIMITED_LABEL } from '../domain/format'
 
 interface QuotaBlockProps {
   quota: NormalizedQuota
 }
 
 export function QuotaBlock({ quota }: QuotaBlockProps) {
-  const percentageText = quota.percentage !== null ? `${Math.round(quota.percentage)}%` : 'N/A'
-  const remainingPercentage = quota.percentage !== null ? 100 - quota.percentage : 0
-  const remainingPercentageText = quota.percentage !== null ? `${Math.round(remainingPercentage)}%` : 'N/A'
-  const usedTotalText = `${quota.used} / ${quota.total}`
+  const percentageText = quota.percentage !== null ? `${Math.round(quota.percentage)}%` : UNLIMITED_LABEL
+  const remainingPercentage = quota.percentage !== null ? 100 - quota.percentage : 100
+  const remainingPercentageText = quota.percentage !== null ? `${Math.round(remainingPercentage)}%` : UNLIMITED_LABEL
+  const usedTotalText = quota.isUnavailable ? UNLIMITED_LABEL : `${quota.used} / ${quota.total}`
   const severityLabel = quota.severity === 'critical' ? 'Critical' : quota.severity === 'warning' ? 'Warning' : ''
-  const resetText = quota.isUnavailable ? 'Unavailable' : formatResetTime(quota.resetAt)
+  const resetText = quota.isUnavailable ? UNLIMITED_LABEL : formatResetTime(quota.resetAt)
 
   return (
     <div className="quota-block" data-testid={`quota-${quota.tier}`}>
