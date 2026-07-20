@@ -4,7 +4,7 @@ Real-time aggregation of coding plan quota data from multiple AI providers into 
 
 ## Features
 
-- Multi-provider polling (Kimi, MiniMax, Z.ai, Zhipu)
+- Multi-provider polling (Kimi, MiniMax, Z.ai, Zhipu, CPA)
 - Canonical normalization to 3 tiers: 5H, 1W, 1M
 - Real-time updates via SSE and WebSocket
 - Derived account status (healthy / degraded / initializing)
@@ -25,6 +25,7 @@ internal/
     store/                → Thread-safe versioned in-memory store
     metrics/              → Prometheus gauges + HTTP middleware
     providers/
+      cpa/                → CLIProxyAPI Codex Pool Aggregator adapter
       kimi/               → Kimi coding plan adapter
       minimax/            → MiniMax coding plan adapter
       monitorquota/       → Shared adapter for Z.ai and Zhipu
@@ -117,7 +118,7 @@ providers:
 
 ### Provider Configuration Fields
 
-- `type` (required) — Provider adapter type: `kimi`, `minimax`, `zai`, or `zhipu`. This determines which adapter is used.
+- `type` (required) — Provider adapter type: `cpa`, `kimi`, `minimax`, `zai`, or `zhipu`. This determines which adapter is used.
 - `name` — Human-readable alias for this account. Defaults to the config key if not specified.
 - `token` — REQUIRED. Bearer token for the provider API.
 - `max_stale_duration` — Tiers whose `reset_at` is more than this duration in the past are omitted from snapshots
@@ -167,7 +168,9 @@ All configuration values can be overridden via environment variables:
 - `UCPQA_PROVIDER_{NAME}_BACKOFF_INITIAL` — Override provider backoff_initial
 - `UCPQA_PROVIDER_{NAME}_BACKOFF_MAX` — Override provider backoff_max
 
-{Name} is the provider key uppercased (e.g. KIMI, ZAI, ZHIPU).
+- `UCPQA_PROVIDER_{NAME}_STAGGER` — Override provider stagger (CPA only)
+
+{Name} is the provider key uppercased (e.g. CPA, KIMI, ZAI, ZHIPU).
 
 ## API Reference
 
