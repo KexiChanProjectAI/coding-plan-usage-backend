@@ -34,7 +34,7 @@ type GlobalConfig struct {
 
 // ProviderConfig holds provider-specific settings.
 type ProviderConfig struct {
-	Type            string        `yaml:"type"` // Provider type (kimi, minimax, zai, zhipu)
+	Type            string        `yaml:"type"` // Provider type (kimi, minimax, zai, zhipu, cpa)
 	Name            string        `yaml:"name"` // Human-readable alias (kept for backward compat)
 	BaseURL         string        `yaml:"base_url"`
 	Token           string        `yaml:"token"`
@@ -42,6 +42,7 @@ type ProviderConfig struct {
 	JitterPercent   int           `yaml:"jitter_percent"`
 	BackoffInitial  time.Duration `yaml:"backoff_initial"`
 	BackoffMax      time.Duration `yaml:"backoff_max"`
+	Stagger         time.Duration `yaml:"stagger"` // Delay between per-account requests (CPA only)
 }
 
 var validProviderTypes = map[string]bool{
@@ -49,6 +50,7 @@ var validProviderTypes = map[string]bool{
 	"minimax": true,
 	"zai":     true,
 	"zhipu":   true,
+	"cpa":     true,
 }
 
 // Validate checks that all required fields are present.
@@ -59,7 +61,7 @@ func (c *Config) Validate() error {
 		}
 		// If Type is not specified, fall back to config key for backward compatibility
 		if prov.Type != "" && !validProviderTypes[strings.ToLower(prov.Type)] {
-			return fmt.Errorf("provider %q has unknown type %q (valid types: kimi, minimax, zai, zhipu)", name, prov.Type)
+			return fmt.Errorf("provider %q has unknown type %q (valid types: kimi, minimax, zai, zhipu, cpa)", name, prov.Type)
 		}
 	}
 	return nil
@@ -154,6 +156,11 @@ func applyEnvOverrides(cfg *Config) {
 		if v := os.Getenv(fmt.Sprintf("UCPQA_PROVIDER_%s_BACKOFF_MAX", upperName)); v != "" {
 			if d, err := time.ParseDuration(v); err == nil {
 				prov.BackoffMax = d
+			}
+		}
+		if v := os.Getenv(fmt.Sprintf("UCPQA_PROVIDER_%s_STAGGER", upperName)); v != "" {
+			if d, err := time.ParseDuration(v); err == nil {
+				prov.Stagger = d
 			}
 		}
 		cfg.Providers[name] = prov

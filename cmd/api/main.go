@@ -13,6 +13,7 @@ import (
 	"github.com/quotahub/ucpqa/internal/config"
 	"github.com/quotahub/ucpqa/internal/domain/provider"
 	"github.com/quotahub/ucpqa/internal/infrastructure/metrics"
+	"github.com/quotahub/ucpqa/internal/infrastructure/providers/cpa"
 	"github.com/quotahub/ucpqa/internal/infrastructure/providers/kimi"
 	"github.com/quotahub/ucpqa/internal/infrastructure/providers/minimax"
 	"github.com/quotahub/ucpqa/internal/infrastructure/providers/monitorquota"
@@ -51,6 +52,8 @@ func run() error {
 			providers = append(providers, kimi.New(alias, provCfg.BaseURL, provCfg.Token))
 		case "minimax":
 			providers = append(providers, minimax.New(alias, provCfg.BaseURL, provCfg.Token))
+		case "cpa":
+			providers = append(providers, cpa.NewWithStagger(alias, provCfg.BaseURL, provCfg.Token, provCfg.Stagger))
 		case "zai":
 			providers = append(providers, monitorquota.NewZAI(alias, provCfg.BaseURL, provCfg.Token))
 		case "zhipu":

@@ -19,17 +19,6 @@ global:
   max_stale_duration: 10m  # Quota tiers with reset_at older than this are omitted from snapshots
 
 providers:
-  # OpenAI Codex — WHAM usage API
-  codex:
-    type: codex              # Provider adapter type
-    name: codex              # Human-readable alias (defaults to config key)
-    base_url: "https://chatgpt.com/backend-api/"
-    token: "your-codex-token-here"     # REQUIRED — Bearer token for authorization
-    refresh_interval: 5m               # How often to poll this provider
-    jitter_percent: 15                 # ±15% random jitter on refresh_interval
-    backoff_initial: 1s                # Initial backoff on fetch failure
-    backoff_max: 60s                   # Maximum backoff duration
-
   # Kimi Coding Plan
   kimi:
     type: kimi
@@ -63,6 +52,20 @@ providers:
     backoff_initial: 1s
     backoff_max: 60s
 
+  # CPA — CLIProxyAPI Codex Pool Aggregator
+  # Queries OpenAI Codex accounts through a CLIProxyAPI management instance and
+  # reports the equal-weighted average remaining percentage of successful queries.
+  cpa:
+    type: cpa
+    name: cpa
+    base_url: "http://127.0.0.1:8317/v0/management"  # CLIProxyAPI management base URL
+    token: "your-cliproxyapi-management-key-here"      # REQUIRED
+    refresh_interval: 5m
+    jitter_percent: 10
+    backoff_initial: 2s
+    backoff_max: 120s
+    stagger: 1s                                        # Delay between per-account requests
+
   # Z.ai — MonitorQuota API
   zai:
     type: zai
@@ -80,17 +83,6 @@ providers:
     name: zhipu
     base_url: "https://open.bigmodel.cn/"
     token: "your-zhipu-token-here"     # REQUIRED
-    refresh_interval: 5m
-    jitter_percent: 10
-    backoff_initial: 2s
-    backoff_max: 120s
-
-  # sub2api — model quotas API
-  sub2api:
-    type: sub2api
-    name: sub2api
-    base_url: "http://crs.jackllm4sci.online"
-    token: "your-sub2api-token-here"   # REQUIRED
     refresh_interval: 5m
     jitter_percent: 10
     backoff_initial: 2s
