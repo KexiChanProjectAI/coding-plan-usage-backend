@@ -4,7 +4,7 @@ Real-time aggregation of coding plan quota data from multiple AI providers into 
 
 ## Features
 
-- Multi-provider polling (OpenAI Codex, Kimi, MiniMax, Z.ai, Zhipu, sub2api)
+- Multi-provider polling (Kimi, MiniMax, Z.ai, Zhipu)
 - Canonical normalization to 3 tiers: 5H, 1W, 1M
 - Real-time updates via SSE and WebSocket
 - Derived account status (healthy / degraded / initializing)
@@ -25,11 +25,9 @@ internal/
     store/                → Thread-safe versioned in-memory store
     metrics/              → Prometheus gauges + HTTP middleware
     providers/
-      codex/              → OpenAI Codex WHAM usage adapter
       kimi/               → Kimi coding plan adapter
       minimax/            → MiniMax coding plan adapter
       monitorquota/       → Shared adapter for Z.ai and Zhipu
-      sub2api/            → sub2api model quotas adapter
   runtime/
     syncmanager/          → Per-provider polling with jitter, backoff, refresh coalescing
   transport/
@@ -70,15 +68,6 @@ global:
   max_stale_duration: 10m  # Tiers with reset_at older than this are omitted
 
 providers:
-  codex:
-    type: codex              # Provider adapter type (codex, kimi, minimax, zai, zhipu, sub2api)
-    name: codex              # Unique alias for this account
-    base_url: "https://api.codex.example.com/v1"
-    token: ""                    # REQUIRED — Bearer token
-    refresh_interval: 5m         # Poll interval
-    jitter_percent: 15           # ±15% random jitter on interval
-    backoff_initial: 1s          # Initial backoff on fetch failure
-    backoff_max: 60s             # Maximum backoff duration
   kimi:
     type: kimi
     name: kimi
@@ -124,26 +113,15 @@ providers:
     jitter_percent: 10
     backoff_initial: 1s
     backoff_max: 60s
-  sub2api:
-    type: sub2api
-    name: sub2api
-    base_url: "http://crs.jackllm4sci.online"
-    token: ""
-    refresh_interval: 5m
-    jitter_percent: 10
-    backoff_initial: 2s
-    backoff_max: 120s
 ```
 
 ### Provider Configuration Fields
 
-- `type` (required) — Provider adapter type: `codex`, `kimi`, `minimax`, `zai`, `zhipu`, or `sub2api`. This determines which adapter is used.
+- `type` (required) — Provider adapter type: `kimi`, `minimax`, `zai`, or `zhipu`. This determines which adapter is used.
 - `name` — Human-readable alias for this account. Defaults to the config key if not specified.
 - `token` — REQUIRED. Bearer token for the provider API.
 - `max_stale_duration` — Tiers whose `reset_at` is more than this duration in the past are omitted from snapshots
 - Config path defaults to `config.yaml`, override with `UCPQA_CONFIG_PATH` env var
-
-For `sub2api`, upstream quotas are reported per model. The backend currently normalizes them into one account-level `5H` and `1W` tier by taking the highest usage percentage across models in each window, which preserves the most constrained model instead of inventing an aggregate sum or average.
 
 ### Multi-Account Support
 
@@ -189,7 +167,7 @@ All configuration values can be overridden via environment variables:
 - `UCPQA_PROVIDER_{NAME}_BACKOFF_INITIAL` — Override provider backoff_initial
 - `UCPQA_PROVIDER_{NAME}_BACKOFF_MAX` — Override provider backoff_max
 
-{Name} is the provider key uppercased (e.g. CODEX, KIMI, ZAI, ZHIPU).
+{Name} is the provider key uppercased (e.g. KIMI, ZAI, ZHIPU).
 
 ## API Reference
 
@@ -200,7 +178,7 @@ Returns array of all account snapshots with derived status.
 ```json
 [
   {
-    "platform": "codex",
+    "platform": "kimi",
     "account_alias": "",
     "quotas": {
       "5H": { "used": 42, "total": 100, "reset_at": "2025-04-28T12:00:00Z" },
@@ -229,7 +207,7 @@ Empty store returns:
 Server-Sent Events stream. Each event wraps a versioned snapshot:
 
 ```
-data: {"version":42,"snapshot":{"platform":"codex","account_alias":"","quotas":{"5H":{"used":42,"total":100,"reset_at":"..."}},...}}
+data: {"version":42,"snapshot":{"platform":"kimi","account_alias":"","quotas":{"5H":{"used":42,"total":100,"reset_at":"..."}},...}}
 ```
 
 - Content-Type: text/event-stream

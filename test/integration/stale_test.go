@@ -14,7 +14,6 @@ import (
 	"github.com/quotahub/ucpqa/internal/app"
 	"github.com/quotahub/ucpqa/internal/config"
 	"github.com/quotahub/ucpqa/internal/infrastructure/metrics"
-	"github.com/quotahub/ucpqa/internal/infrastructure/providers/codex"
 	"github.com/quotahub/ucpqa/internal/infrastructure/providers/kimi"
 	"github.com/quotahub/ucpqa/internal/infrastructure/providers/minimax"
 	"github.com/quotahub/ucpqa/internal/infrastructure/providers/monitorquota"
@@ -26,9 +25,6 @@ import (
 )
 
 func TestStaleExpiryOmitsTier(t *testing.T) {
-	codexServer := httpmock.New()
-	defer codexServer.Close()
-
 	kimiServer := httpmock.New()
 	defer kimiServer.Close()
 
@@ -45,7 +41,7 @@ func TestStaleExpiryOmitsTier(t *testing.T) {
 	staleResetAt := now.Add(-48 * time.Hour)
 	freshResetAt := now.Add(5 * time.Hour)
 
-	kimiResetAt := freshResetAt.Format(time.RFC3339)
+	kimiResetAt := staleResetAt.Format(time.RFC3339)
 	kimiResp := map[string]interface{}{
 		"usage": map[string]string{
 			"limit":     "1000",
@@ -105,18 +101,6 @@ func TestStaleExpiryOmitsTier(t *testing.T) {
 	err = zhipuServer.SetResponse("/api/monitor/usage/quota/limit", 200, zhipuResp)
 	require.NoError(t, err)
 
-	codexResp := map[string]interface{}{
-		"rate_limit": map[string]interface{}{
-			"primary_window": map[string]interface{}{
-				"used_percent":         45.5,
-				"limit_window_seconds": 18000,
-				"reset_at":             staleResetAt.Unix(),
-			},
-		},
-	}
-	err = codexServer.SetResponse("/wham/usage", 200, codexResp)
-	require.NoError(t, err)
-
 	apiPort := 18082
 	metricsPort := 18092
 	maxStaleDuration := 24 * time.Hour
@@ -130,15 +114,6 @@ func TestStaleExpiryOmitsTier(t *testing.T) {
 			MaxStaleDuration: maxStaleDuration,
 		},
 		Providers: map[string]config.ProviderConfig{
-			"codex": {
-				Name:            "codex",
-				BaseURL:         codexServer.URL(),
-				Token:           "test-token-codex",
-				RefreshInterval: 100 * time.Millisecond,
-				JitterPercent:   0,
-				BackoffInitial:  100 * time.Millisecond,
-				BackoffMax:      500 * time.Millisecond,
-			},
 			"kimi": {
 				Name:            "kimi",
 				BaseURL:         kimiServer.URL(),
@@ -179,7 +154,6 @@ func TestStaleExpiryOmitsTier(t *testing.T) {
 	}
 
 	providers := []providertype.Provider{
-		codex.NewWithClient("codex", cfg.Providers["codex"].BaseURL, cfg.Providers["codex"].Token, &http.Client{Timeout: 10 * time.Second}),
 		kimi.NewWithClient("kimi", cfg.Providers["kimi"].BaseURL, cfg.Providers["kimi"].Token, &http.Client{Timeout: 10 * time.Second}),
 		minimax.NewWithClient("minimax", cfg.Providers["minimax"].BaseURL, cfg.Providers["minimax"].Token, &http.Client{Timeout: 10 * time.Second}),
 		monitorquota.NewZAIWithClient("zai", cfg.Providers["zai"].BaseURL, cfg.Providers["zai"].Token, &http.Client{Timeout: 10 * time.Second}),
@@ -211,7 +185,7 @@ func TestStaleExpiryOmitsTier(t *testing.T) {
 	deadline := time.Now().Add(10 * time.Second)
 	for time.Now().Before(deadline) {
 		platforms := s.Platforms()
-		if len(platforms) == 5 {
+		if len(platforms) == 4 {
 			break
 		}
 		time.Sleep(50 * time.Millisecond)
@@ -238,20 +212,20 @@ func TestStaleExpiryOmitsTier(t *testing.T) {
 		accounts[platform] = r
 	}
 
-	assert.Equal(t, "healthy", accounts["codex"]["status"], "codex should remain healthy after stale tier omission")
-	// With backfill, codex still has quotas (backfilled 1W/1M with zero ResetAt are preserved by omitStaleQuotas)
+	assert.Equal(t, "healthy", accounts["kimi"]["status"], "kimi should remain healthy after stale tier omission")
+	// With backfill, Kimi still has quotas (backfilled 1W/1M with zero ResetAt are preserved by omitStaleQuotas)
 	// but the stale 5H tier is omitted
-	codexQuotas, hasCodexQuotas := accounts["codex"]["quotas"].(map[string]interface{})
-	assert.True(t, hasCodexQuotas, "codex should have quotas from backfill")
-	if hasCodexQuotas {
-		_, has5H := codexQuotas["5H"]
-		assert.False(t, has5H, "codex 5H tier should be omitted (stale)")
-		_, has1W := codexQuotas["1W"]
-		assert.True(t, has1W, "codex 1W tier should be present (backfilled with zero ResetAt)")
-		_, has1M := codexQuotas["1M"]
-		assert.True(t, has1M, "codex 1M tier should be present (backfilled with zero ResetAt)")
+	kimiQuotas, hasKimiQuotas := accounts["kimi"]["quotas"].(map[string]interface{})
+	assert.True(t, hasKimiQuotas, "kimi should have quotas from backfill")
+	if hasKimiQuotas {
+		_, has5H := kimiQuotas["5H"]
+		assert.False(t, has5H, "kimi 5H tier should be omitted (stale)")
+		_, has1W := kimiQuotas["1W"]
+		assert.True(t, has1W, "kimi 1W tier should be present (backfilled with zero ResetAt)")
+		_, has1M := kimiQuotas["1M"]
+		assert.True(t, has1M, "kimi 1M tier should be present (backfilled with zero ResetAt)")
 	}
-	for _, prov := range []string{"kimi", "minimax", "zai", "zhipu"} {
+	for _, prov := range []string{"minimax", "zai", "zhipu"} {
 		assert.Equal(t, "healthy", accounts[prov]["status"], "provider %q should be healthy", prov)
 	}
 

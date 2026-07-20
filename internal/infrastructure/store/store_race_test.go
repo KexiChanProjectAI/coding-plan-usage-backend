@@ -138,7 +138,7 @@ func TestStoreRaceConcurrentUpdates(t *testing.T) {
 func TestStoreRaceMultiplePlatforms(t *testing.T) {
 	s := New()
 
-	platforms := []string{"codex", "kimi", "minimax", "zai", "zhipu"}
+	platforms := []string{"kimi", "minimax", "zai", "zhipu"}
 	duration := 500 * time.Millisecond
 	stopCh := make(chan struct{})
 
@@ -217,7 +217,7 @@ func TestStoreLeakGoroutines(t *testing.T) {
 
 	s := New()
 
-	platforms := []string{"codex", "kimi", "minimax", "zai", "zhipu"}
+	platforms := []string{"kimi", "minimax", "zai", "zhipu"}
 	var wg sync.WaitGroup
 
 	// Start concurrent readers and writers

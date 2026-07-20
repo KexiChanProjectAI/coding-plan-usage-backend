@@ -14,7 +14,6 @@ import (
 	"github.com/quotahub/ucpqa/internal/app"
 	"github.com/quotahub/ucpqa/internal/config"
 	"github.com/quotahub/ucpqa/internal/infrastructure/metrics"
-	"github.com/quotahub/ucpqa/internal/infrastructure/providers/codex"
 	"github.com/quotahub/ucpqa/internal/infrastructure/providers/kimi"
 	"github.com/quotahub/ucpqa/internal/infrastructure/providers/minimax"
 	"github.com/quotahub/ucpqa/internal/infrastructure/providers/monitorquota"
@@ -26,9 +25,6 @@ import (
 )
 
 func TestPartialFailureProducesDegradedStatus(t *testing.T) {
-	codexServer := httpmock.New()
-	defer codexServer.Close()
-
 	kimiServer := httpmock.New()
 	defer kimiServer.Close()
 
@@ -42,20 +38,6 @@ func TestPartialFailureProducesDegradedStatus(t *testing.T) {
 	defer zhipuServer.Close()
 
 	now := time.Now()
-	resetAt := now.Add(5 * time.Hour).Unix()
-
-	codexResp := map[string]interface{}{
-		"rate_limit": map[string]interface{}{
-			"primary_window": map[string]interface{}{
-				"used_percent":         45.5,
-				"limit_window_seconds": 18000,
-				"reset_at":             resetAt,
-			},
-		},
-	}
-	err := codexServer.SetResponse("/wham/usage", 200, codexResp)
-	require.NoError(t, err)
-
 	kimiResetAt := now.Add(4 * time.Hour).Format(time.RFC3339)
 	kimiResp := map[string]interface{}{
 		"usage": map[string]string{
@@ -64,7 +46,7 @@ func TestPartialFailureProducesDegradedStatus(t *testing.T) {
 			"resetTime": kimiResetAt,
 		},
 	}
-	err = kimiServer.SetResponse("/coding/v1/usages", 200, kimiResp)
+	err := kimiServer.SetResponse("/coding/v1/usages", 200, kimiResp)
 	require.NoError(t, err)
 
 	minimaxResp := map[string]interface{}{
@@ -129,15 +111,6 @@ func TestPartialFailureProducesDegradedStatus(t *testing.T) {
 			MaxStaleDuration: maxStaleDuration,
 		},
 		Providers: map[string]config.ProviderConfig{
-			"codex": {
-				Name:            "codex",
-				BaseURL:         codexServer.URL(),
-				Token:           "test-token-codex",
-				RefreshInterval: 100 * time.Millisecond,
-				JitterPercent:   0,
-				BackoffInitial:  100 * time.Millisecond,
-				BackoffMax:      500 * time.Millisecond,
-			},
 			"kimi": {
 				Name:            "kimi",
 				BaseURL:         kimiServer.URL(),
@@ -178,7 +151,6 @@ func TestPartialFailureProducesDegradedStatus(t *testing.T) {
 	}
 
 	providers := []providertype.Provider{
-		codex.NewWithClient("codex", cfg.Providers["codex"].BaseURL, cfg.Providers["codex"].Token, &http.Client{Timeout: 10 * time.Second}),
 		kimi.NewWithClient("kimi", cfg.Providers["kimi"].BaseURL, cfg.Providers["kimi"].Token, &http.Client{Timeout: 10 * time.Second}),
 		minimax.NewWithClient("minimax", cfg.Providers["minimax"].BaseURL, cfg.Providers["minimax"].Token, &http.Client{Timeout: 10 * time.Second}),
 		monitorquota.NewZAIWithClient("zai", cfg.Providers["zai"].BaseURL, cfg.Providers["zai"].Token, &http.Client{Timeout: 10 * time.Second}),
@@ -210,7 +182,7 @@ func TestPartialFailureProducesDegradedStatus(t *testing.T) {
 	deadline := time.Now().Add(10 * time.Second)
 	for time.Now().Before(deadline) {
 		platforms := s.Platforms()
-		if len(platforms) == 5 {
+		if len(platforms) == 4 {
 			break
 		}
 		time.Sleep(50 * time.Millisecond)
@@ -237,13 +209,13 @@ func TestPartialFailureProducesDegradedStatus(t *testing.T) {
 		accounts[platform] = r
 	}
 
-	for _, prov := range []string{"codex", "kimi", "minimax", "zai", "zhipu"} {
+	for _, prov := range []string{"kimi", "minimax", "zai", "zhipu"} {
 		account, ok := accounts[prov]
 		require.True(t, ok, "expected provider %q", prov)
 		assert.Equal(t, "healthy", account["status"], "provider %q should be healthy before failure", prov)
 	}
 
-	for _, prov := range []string{"codex", "kimi", "minimax", "zai", "zhipu"} {
+	for _, prov := range []string{"kimi", "minimax", "zai", "zhipu"} {
 		account := accounts[prov]
 		quotas, ok := account["quotas"].(map[string]interface{})
 		require.True(t, ok, "provider %q quotas should be a map", prov)
@@ -257,8 +229,8 @@ func TestPartialFailureProducesDegradedStatus(t *testing.T) {
 		}
 	}
 
-	codexServer.SetResponse("/wham/usage", 500, map[string]string{"error": "internal server error"})
-	syncMgr.Refresh("codex")
+	kimiServer.SetResponse("/coding/v1/usages", 500, map[string]string{"error": "internal server error"})
+	syncMgr.Refresh("kimi")
 
 	time.Sleep(500 * time.Millisecond)
 
@@ -284,8 +256,8 @@ func TestPartialFailureProducesDegradedStatus(t *testing.T) {
 
 	// After a fetch failure, the store still has the old snapshot.
 	// The degraded status is derived from staleness (Freshness), not fetch failures.
-	// So we verify that other providers remain healthy while codex may have stale data.
-	for _, prov := range []string{"kimi", "minimax", "zai", "zhipu"} {
+	// So we verify that other providers remain healthy while Kimi may have stale data.
+	for _, prov := range []string{"minimax", "zai", "zhipu"} {
 		assert.Equal(t, "healthy", accounts[prov]["status"], "provider %q should still be healthy", prov)
 	}
 

@@ -22,9 +22,9 @@ server:
 global:
   max_stale_duration: 5m
 providers:
-  codex:
-    name: codex
-    base_url: http://codex.example.com
+  kimi:
+    name: kimi
+    base_url: http://kimi.example.com
     token: yaml-token
     refresh_interval: 10m
     jitter_percent: 10
@@ -40,8 +40,8 @@ providers:
 	os.Setenv("UCPQA_API_PORT", "8888")
 	os.Setenv("UCPQA_METRICS_PORT", "9999")
 	os.Setenv("UCPQA_MAX_STALE_DURATION", "15m")
-	os.Setenv("UCPQA_PROVIDER_CODEX_TOKEN", "env-token")
-	os.Setenv("UCPQA_PROVIDER_CODEX_REFRESH_INTERVAL", "20m")
+	os.Setenv("UCPQA_PROVIDER_KIMI_TOKEN", "env-token")
+	os.Setenv("UCPQA_PROVIDER_KIMI_REFRESH_INTERVAL", "20m")
 	os.Setenv("UCPQA_CORS_ENABLED", "true")
 	os.Setenv("UCPQA_CORS_ALLOWED_ORIGINS", "https://frontend.example.com,http://localhost:5173")
 	os.Setenv("UCPQA_CORS_ALLOWED_METHODS", "GET,OPTIONS")
@@ -50,8 +50,8 @@ providers:
 		os.Unsetenv("UCPQA_API_PORT")
 		os.Unsetenv("UCPQA_METRICS_PORT")
 		os.Unsetenv("UCPQA_MAX_STALE_DURATION")
-		os.Unsetenv("UCPQA_PROVIDER_CODEX_TOKEN")
-		os.Unsetenv("UCPQA_PROVIDER_CODEX_REFRESH_INTERVAL")
+		os.Unsetenv("UCPQA_PROVIDER_KIMI_TOKEN")
+		os.Unsetenv("UCPQA_PROVIDER_KIMI_REFRESH_INTERVAL")
 		os.Unsetenv("UCPQA_CORS_ENABLED")
 		os.Unsetenv("UCPQA_CORS_ALLOWED_ORIGINS")
 		os.Unsetenv("UCPQA_CORS_ALLOWED_METHODS")
@@ -72,11 +72,11 @@ providers:
 	if cfg.Global.MaxStaleDuration != 15*time.Minute {
 		t.Errorf("MaxStaleDuration: got %v, want 15m", cfg.Global.MaxStaleDuration)
 	}
-	if cfg.Providers["codex"].Token != "env-token" {
-		t.Errorf("Provider token: got %q, want env-token", cfg.Providers["codex"].Token)
+	if cfg.Providers["kimi"].Token != "env-token" {
+		t.Errorf("Provider token: got %q, want env-token", cfg.Providers["kimi"].Token)
 	}
-	if cfg.Providers["codex"].RefreshInterval != 20*time.Minute {
-		t.Errorf("RefreshInterval: got %v, want 20m", cfg.Providers["codex"].RefreshInterval)
+	if cfg.Providers["kimi"].RefreshInterval != 20*time.Minute {
+		t.Errorf("RefreshInterval: got %v, want 20m", cfg.Providers["kimi"].RefreshInterval)
 	}
 	if !cfg.Server.CorsEnabled {
 		t.Errorf("CorsEnabled: got %v, want true", cfg.Server.CorsEnabled)
@@ -100,9 +100,9 @@ server:
 global:
   max_stale_duration: 5m
 providers:
-  codex:
-    name: codex
-    base_url: http://codex.example.com
+  kimi:
+    name: kimi
+    base_url: http://kimi.example.com
     token: ""
     refresh_interval: 10m
     jitter_percent: 10
@@ -127,7 +127,7 @@ providers:
 	if err == nil {
 		t.Fatal("Validate: expected error for missing token, got nil")
 	}
-	if err.Error() != `provider "codex" token is required` {
-		t.Errorf("Validate error: got %q, want %q", err.Error(), `provider "codex" token is required`)
+	if err.Error() != `provider "kimi" token is required` {
+		t.Errorf("Validate error: got %q, want %q", err.Error(), `provider "kimi" token is required`)
 	}
 }

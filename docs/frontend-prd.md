@@ -115,7 +115,7 @@ The frontend expects `GET /api/v1/usage` to return an array of provider snapshot
 
 ```json
 {
-  "platform": "codex",
+  "platform": "kimi",
   "account_alias": "default",
   "status": "healthy",
   "last_sync": "2026-05-09T12:00:00Z",

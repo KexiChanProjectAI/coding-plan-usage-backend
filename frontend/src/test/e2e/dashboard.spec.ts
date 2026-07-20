@@ -3,9 +3,9 @@ import { expect, test } from '@playwright/test'
 
 const mockProviders = [
   {
-    platform: 'codex',
+    platform: 'kimi',
     account_alias: 'primary',
-    provider_id: 'codex-primary',
+    provider_id: 'kimi-primary',
     quotas: {
       '5H': { used: 20, total: 100, reset_at: '2026-01-01T05:00:00Z' },
       '1W': { used: 200, total: 1000, reset_at: '2026-01-07T00:00:00Z' },
@@ -43,7 +43,7 @@ test.describe('QuotaHub Dashboard', () => {
     await page.goto('/')
 
     await expect(page.getByRole('heading', { name: 'Coding Plans' })).toBeVisible()
-    await expect(page.getByText('codex', { exact: false })).toBeVisible()
+    await expect(page.getByText('kimi', { exact: false })).toBeVisible()
     await expect(page.getByText('kimi', { exact: false })).toBeVisible()
     await expect(page.getByText('Healthy')).toBeVisible()
     await expect(page.getByText('Warning')).toBeVisible()

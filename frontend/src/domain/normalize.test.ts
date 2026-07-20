@@ -70,7 +70,7 @@ describe('quota calculations', () => {
 describe('key and placeholder behavior', () => {
   it('uses provider_id as primary key', () => {
     const provider: UsageResponse = {
-      platform: 'codex',
+      platform: 'kimi',
       account_alias: 'main',
       quotas: {},
       last_sync: '2025-01-01T00:00:00Z',
@@ -83,7 +83,7 @@ describe('key and placeholder behavior', () => {
 
   it('falls back to platform:account_alias and default alias', () => {
     const withAlias: UsageResponse = {
-      platform: 'codex',
+      platform: 'kimi',
       account_alias: 'alt',
       quotas: {},
       last_sync: '2025-01-01T00:00:00Z',
@@ -91,15 +91,15 @@ describe('key and placeholder behavior', () => {
       status: 'healthy',
     }
     const withoutAlias: UsageResponse = {
-      platform: 'codex',
+      platform: 'kimi',
       account_alias: '',
       quotas: {},
       last_sync: '2025-01-01T00:00:00Z',
       version: 1,
       status: 'healthy',
     }
-    expect(deriveProviderKey(withAlias)).toBe('codex:alt')
-    expect(deriveProviderKey(withoutAlias)).toBe('codex:default')
+    expect(deriveProviderKey(withAlias)).toBe('kimi:alt')
+    expect(deriveProviderKey(withoutAlias)).toBe('kimi:default')
   })
 
   it('filters initializing placeholder from normalized providers', () => {
@@ -112,8 +112,8 @@ describe('key and placeholder behavior', () => {
         status: 'initializing',
       },
       {
-        platform: 'codex',
-        account_alias: 'codex',
+        platform: 'kimi',
+        account_alias: 'kimi',
         quotas: {
           '5H': { used: 10, total: 100, reset_at: '2025-01-01T05:00:00Z' },
         },
@@ -126,7 +126,7 @@ describe('key and placeholder behavior', () => {
     expect(isInitializingPlaceholder(input[0])).toBe(true)
     const normalized = normalizeProviders(input)
     expect(normalized).toHaveLength(1)
-    expect(normalized[0].platform).toBe('codex')
+    expect(normalized[0].platform).toBe('kimi')
     expect(normalized[0].status).toBe('Warning')
     expect(normalized[0].quotas).toHaveLength(3)
     expect(normalized[0].quotas.map((q) => q.tier)).toEqual(['5H', '1W', '1M'])

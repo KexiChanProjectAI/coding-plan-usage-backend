@@ -3,74 +3,10 @@
 This document describes the API request/response formats used by QuotaHub to fetch usage/quota data from each supported provider.
 
 Providers covered:
-- [OpenAI Codex](#openai-codex)
 - [Kimi Coding Plan](#kimi-coding-plan)
 - [MiniMax Coding Plan](#minimax-coding-plan)
 - [Z.ai](#zai)
 - [Zhipu BigModel](#zhipu-bigmodel)
-
----
-
-## OpenAI Codex
-
-### Base URL
-```
-https://chatgpt.com/backend-api/
-```
-
-### Endpoint
-```
-GET wham/usage
-```
-
-### Request Headers
-| Header | Required | Description |
-|--------|----------|-------------|
-| `Authorization` | Yes | Bearer token or session authorization |
-| `ChatGPT-Account-Id` | Optional | Account identifier |
-
-### Response Body (JSON)
-```json
-{
-  "plan_type": "string | null",
-  "rate_limit": {
-    "allowed": "boolean | null",
-    "limit_reached": "boolean | null",
-    "primary_window": {
-      "used_percent": "number | null",
-      "limit_window_seconds": "long | null",
-      "reset_after_seconds": "long | null",
-      "reset_at": "long (seconds) | null"
-    },
-    "secondary_window": {
-      "used_percent": "number | null",
-      "limit_window_seconds": "long | null",
-      "reset_after_seconds": "long | null",
-      "reset_at": "long (seconds) | null"
-    }
-  },
-  "additional_rate_limits": [
-    {
-      "limit_name": "string | null",
-      "metered_feature": "string",
-      "rate_limit": { /* same shape as rate_limit above */ }
-    }
-  ],
-  "rate_limit_reached_type": {
-    "type": "string | null"
-  },
-  "credits": {
-    "has_credits": "boolean | null",
-    "unlimited": "boolean | null",
-    "balance": "string | null"
-  }
-}
-```
-
-### Notes
-- `reset_at` is in **seconds** (not milliseconds).
-- `used_percent` is a 0–100 percentage.
-- `additional_rate_limits` contains per-feature rate limits.
 
 ---
 
@@ -460,7 +396,6 @@ All providers use the following HTTP client defaults in QuotaHub:
 
 | Provider | Error Indicator |
 |----------|-----------------|
-| **Codex** | HTTP error codes / missing fields |
 | **Kimi** | HTTP error codes / parse failures |
 | **MiniMax** | `base_resp.status_code != 0` |
 | **Z.ai** | `success == false` or `code != 200` |

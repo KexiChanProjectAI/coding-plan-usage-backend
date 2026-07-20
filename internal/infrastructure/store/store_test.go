@@ -132,7 +132,7 @@ func TestStorePlatforms(t *testing.T) {
 	s := New()
 
 	s.Update(domain.AccountSnapshot{
-		Platform:     "codex",
+		Platform:     "zai",
 		AccountAlias: "c1",
 		Quotas:       make(map[domain.Tier]domain.QuotaTier),
 	})
@@ -156,7 +156,7 @@ func TestStorePlatforms(t *testing.T) {
 	for _, p := range platforms {
 		platformSet[p] = true
 	}
-	for _, expected := range []string{"codex", "kimi", "minimax"} {
+	for _, expected := range []string{"zai", "kimi", "minimax"} {
 		if !platformSet[expected] {
 			t.Errorf("expected platform %s not found", expected)
 		}
@@ -213,7 +213,7 @@ func TestStoreConcurrentReads(t *testing.T) {
 func TestStoreConcurrentUpdates(t *testing.T) {
 	s := New()
 
-	platforms := []string{"codex", "kimi", "minimax", "zai", "zhipu"}
+	platforms := []string{"kimi", "minimax", "zai", "zhipu"}
 
 	var wg sync.WaitGroup
 	for _, platform := range platforms {

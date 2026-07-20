@@ -17,8 +17,8 @@ function mockMatchMedia(matches: boolean) {
 
 const mockProviders: UsageResponse[] = [
   {
-    platform: 'codex',
-    account_alias: 'codex',
+    platform: 'kimi',
+    account_alias: 'kimi',
     quotas: {
       '5H': { used: 50, total: 500, reset_at: '2025-01-01T05:00:00Z' },
       '1W': { used: 2000, total: 10000, reset_at: '2025-01-06T00:00:00Z' },
@@ -74,7 +74,7 @@ describe('Dashboard', () => {
     render(<App />)
 
     await waitFor(() => {
-      expect(screen.getByTestId('provider-card-codex:codex')).toBeInTheDocument()
+      expect(screen.getByTestId('provider-card-kimi:kimi')).toBeInTheDocument()
     })
 
     expect(screen.getByTestId('provider-card-kimi:work')).toBeInTheDocument()
@@ -93,11 +93,11 @@ describe('Dashboard', () => {
     render(<App />)
 
     await waitFor(() => {
-      expect(screen.getByTestId('provider-card-codex:codex')).toBeInTheDocument()
+      expect(screen.getByTestId('provider-card-kimi:kimi')).toBeInTheDocument()
     })
 
     const providerCards = screen.getAllByTestId(/provider-card-/)
-    expect(providerCards[0]).toHaveAttribute('data-testid', 'provider-card-codex:codex')
+    expect(providerCards[0]).toHaveAttribute('data-testid', 'provider-card-kimi:kimi')
     expect(providerCards[1]).toHaveAttribute('data-testid', 'provider-card-kimi:work')
   })
 
@@ -173,7 +173,7 @@ describe('Dashboard', () => {
     const { unmount } = render(<App />)
 
     await waitFor(() => {
-      expect(screen.getByTestId('provider-card-codex:codex')).toBeInTheDocument()
+      expect(screen.getByTestId('provider-card-kimi:kimi')).toBeInTheDocument()
     })
 
     expect(screen.getByTestId('header-refresh-status')).toHaveTextContent('POLLING (retrying)')
@@ -214,7 +214,7 @@ describe('Dashboard', () => {
     render(<App />)
 
     await waitFor(() => {
-      expect(screen.getByTestId('provider-card-codex:codex')).toBeInTheDocument()
+      expect(screen.getByTestId('provider-card-kimi:kimi')).toBeInTheDocument()
     })
 
     expect(screen.getByTestId('header-last-sync')).toHaveTextContent('Updated')
@@ -237,7 +237,7 @@ describe('Dashboard', () => {
     render(<App />)
 
     await waitFor(() => {
-      expect(screen.getByTestId('provider-card-codex:codex')).toBeInTheDocument()
+      expect(screen.getByTestId('provider-card-kimi:kimi')).toBeInTheDocument()
     })
 
     expect(screen.getByTestId('header-last-sync')).toBeInTheDocument()

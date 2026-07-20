@@ -14,7 +14,7 @@ func BenchmarkStoreRead(b *testing.B) {
 	s := New()
 
 	// Pre-populate store with 5 platforms
-	platforms := []string{"codex", "kimi", "minimax", "zai", "zhipu"}
+	platforms := []string{"kimi", "minimax", "zai", "zhipu"}
 	for _, platform := range platforms {
 		snap := domain.AccountSnapshot{
 			Platform:     platform,
@@ -39,7 +39,7 @@ func BenchmarkStoreRead(b *testing.B) {
 func BenchmarkStoreReadWide(b *testing.B) {
 	s := New()
 
-	platforms := []string{"codex", "kimi", "minimax", "zai", "zhipu"}
+	platforms := []string{"kimi", "minimax", "zai", "zhipu"}
 	for _, platform := range platforms {
 		snap := domain.AccountSnapshot{
 			Platform:     platform,
@@ -64,7 +64,7 @@ func BenchmarkStoreReadWide(b *testing.B) {
 func BenchmarkStoreWrite(b *testing.B) {
 	s := New()
 
-	platforms := []string{"codex", "kimi", "minimax", "zai", "zhipu"}
+	platforms := []string{"kimi", "minimax", "zai", "zhipu"}
 
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
@@ -87,7 +87,7 @@ func BenchmarkStoreWrite(b *testing.B) {
 func BenchmarkStoreReadWriteMixed(b *testing.B) {
 	s := New()
 
-	platforms := []string{"codex", "kimi", "minimax", "zai", "zhipu"}
+	platforms := []string{"kimi", "minimax", "zai", "zhipu"}
 	for _, platform := range platforms {
 		snap := domain.AccountSnapshot{
 			Platform:     platform,

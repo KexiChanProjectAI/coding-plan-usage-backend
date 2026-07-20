@@ -11,6 +11,3 @@ package integration
 // func TestMonitorQuotaZAI(t *testing.T) { ... }
 // func TestMonitorQuotaZhipu(t *testing.T) { ... }
 // func TestMonitorQuotaEnvelopeValidation(t *testing.T) { ... }
-// func TestCodexPrimaryWindow5H(t *testing.T) { ... }
-// func TestCodexSecondaryWindow1W(t *testing.T) { ... }
-// func TestCodexAdditionalRateLimits1M(t *testing.T) { ... }

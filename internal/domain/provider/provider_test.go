@@ -10,7 +10,7 @@ import (
 )
 
 type mockProvider struct {
-	name    string
+	name     string
 	snapshot *domain.AccountSnapshot
 	fetchErr error
 }
@@ -53,15 +53,15 @@ func TestProviderErrorsCategorizeFailures(t *testing.T) {
 	underlying := errors.New("connection reset")
 
 	tests := []struct {
-		name       string
-		err        error
-		wantType   string
-		checkType  func(error) bool
+		name        string
+		err         error
+		wantType    string
+		checkType   func(error) bool
 		checkUnwrap func(error) bool
 	}{
 		{
 			name:      "ErrFetchFailure",
-			err:       NewErrFetchFailure("codex", underlying),
+			err:       NewErrFetchFailure("kimi", underlying),
 			wantType:  "ErrFetchFailure",
 			checkType: IsFetchFailure,
 			checkUnwrap: func(e error) bool {
@@ -112,7 +112,7 @@ func TestProviderErrorsCategorizeFailures(t *testing.T) {
 func TestErrorTypeDistinctness(t *testing.T) {
 	underlying := errors.New("network error")
 
-	fetchErr := NewErrFetchFailure("codex", underlying)
+	fetchErr := NewErrFetchFailure("kimi", underlying)
 	parseErr := NewErrParseFailure("kimi", underlying)
 	upstreamErr := NewErrUpstreamRejection("minimax", 403, "forbidden", underlying)
 	staleErr := NewErrStaleExpiry("zhipu", "2024-01-01T00:00:00Z")
@@ -184,7 +184,7 @@ func TestProviderReturnsCorrectErrorTypes(t *testing.T) {
 		err   error
 		check func(error) bool
 	}{
-		{name: "codex-fetch", err: NewErrFetchFailure("codex", underlying), check: IsFetchFailure},
+		{name: "kimi-fetch", err: NewErrFetchFailure("kimi", underlying), check: IsFetchFailure},
 		{name: "kimi-parse", err: NewErrParseFailure("kimi", underlying), check: IsParseFailure},
 		{name: "minimax-upstream", err: NewErrUpstreamRejection("minimax", 500, "server error", underlying), check: IsUpstreamRejection},
 		{name: "zhipu-stale", err: NewErrStaleExpiry("zhipu", "2024-01-01T00:00:00Z"), check: IsStaleExpiry},

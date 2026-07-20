@@ -14,7 +14,6 @@ import (
 	"github.com/quotahub/ucpqa/internal/app"
 	"github.com/quotahub/ucpqa/internal/config"
 	"github.com/quotahub/ucpqa/internal/infrastructure/metrics"
-	"github.com/quotahub/ucpqa/internal/infrastructure/providers/codex"
 	"github.com/quotahub/ucpqa/internal/infrastructure/providers/kimi"
 	"github.com/quotahub/ucpqa/internal/infrastructure/providers/minimax"
 	"github.com/quotahub/ucpqa/internal/infrastructure/providers/monitorquota"
@@ -27,9 +26,6 @@ import (
 
 func TestHealthyFullStackUsageSnapshot(t *testing.T) {
 	// Create mock HTTP servers for each provider
-	codexServer := httpmock.New()
-	defer codexServer.Close()
-
 	kimiServer := httpmock.New()
 	defer kimiServer.Close()
 
@@ -42,41 +38,7 @@ func TestHealthyFullStackUsageSnapshot(t *testing.T) {
 	zhipuServer := httpmock.New()
 	defer zhipuServer.Close()
 
-	// Configure Codex mock response - endpoint: GET /wham/usage
-	// Codex has: primary_window (5H), secondary_window (1W), additional_rate_limits (1M)
 	now := time.Now()
-	resetAt5H := now.Add(5 * time.Hour).Unix()
-	resetAt1W := now.Add(7 * 24 * time.Hour).Unix()
-	resetAt1M := now.Add(30 * 24 * time.Hour).Unix()
-	codexResp := map[string]interface{}{
-		"plan_type": "pro",
-		"rate_limit": map[string]interface{}{
-			"primary_window": map[string]interface{}{
-				"used_percent":         45.5,
-				"limit_window_seconds": 18000, // 5H
-				"reset_at":             resetAt5H,
-			},
-			"secondary_window": map[string]interface{}{
-				"used_percent":         20.0,
-				"limit_window_seconds": 604800, // 1W
-				"reset_at":             resetAt1W,
-			},
-		},
-		"additional_rate_limits": []map[string]interface{}{
-			{
-				"limit_name":      "monthly_limit",
-				"metered_feature": "api_calls",
-				"rate_limit": map[string]interface{}{
-					"used_percent":         10.0,
-					"limit_window_seconds": 2592000, // 1M
-					"reset_at":             resetAt1M,
-				},
-			},
-		},
-	}
-	err := codexServer.SetResponse("/wham/usage", 200, codexResp)
-	require.NoError(t, err)
-
 	// Configure Kimi mock response - endpoint: GET /coding/v1/usages
 	// Kimi: all numeric values are strings
 	kimiResetAt5H := now.Add(4 * time.Hour).Format(time.RFC3339)
@@ -101,7 +63,7 @@ func TestHealthyFullStackUsageSnapshot(t *testing.T) {
 			},
 		},
 	}
-	err = kimiServer.SetResponse("/coding/v1/usages", 200, kimiResp)
+	err := kimiServer.SetResponse("/coding/v1/usages", 200, kimiResp)
 	require.NoError(t, err)
 
 	// Configure MiniMax mock response - endpoint: GET /v1/api/openplatform/coding_plan/remains
@@ -190,15 +152,6 @@ func TestHealthyFullStackUsageSnapshot(t *testing.T) {
 			MaxStaleDuration: maxStaleDuration,
 		},
 		Providers: map[string]config.ProviderConfig{
-			"codex": {
-				Name:            "codex",
-				BaseURL:         codexServer.URL(),
-				Token:           "test-token-codex",
-				RefreshInterval: 100 * time.Millisecond,
-				JitterPercent:   0,
-				BackoffInitial:  100 * time.Millisecond,
-				BackoffMax:      500 * time.Millisecond,
-			},
 			"kimi": {
 				Name:            "kimi",
 				BaseURL:         kimiServer.URL(),
@@ -240,7 +193,6 @@ func TestHealthyFullStackUsageSnapshot(t *testing.T) {
 
 	// Create providers
 	providers := []providertype.Provider{
-		codex.NewWithClient("codex", cfg.Providers["codex"].BaseURL, cfg.Providers["codex"].Token, &http.Client{Timeout: 10 * time.Second}),
 		kimi.NewWithClient("kimi", cfg.Providers["kimi"].BaseURL, cfg.Providers["kimi"].Token, &http.Client{Timeout: 10 * time.Second}),
 		minimax.NewWithClient("minimax", cfg.Providers["minimax"].BaseURL, cfg.Providers["minimax"].Token, &http.Client{Timeout: 10 * time.Second}),
 		monitorquota.NewZAIWithClient("zai", cfg.Providers["zai"].BaseURL, cfg.Providers["zai"].Token, &http.Client{Timeout: 10 * time.Second}),
@@ -273,11 +225,11 @@ func TestHealthyFullStackUsageSnapshot(t *testing.T) {
 	}()
 
 	// Wait for first sync to complete (providers sync and update store)
-	// Poll the store until we have all 5 platforms
+	// Poll the store until all providers have synced.
 	deadline := time.Now().Add(10 * time.Second)
 	for time.Now().Before(deadline) {
 		platforms := s.Platforms()
-		if len(platforms) == 5 {
+		if len(platforms) == 4 {
 			break
 		}
 		time.Sleep(50 * time.Millisecond)
@@ -298,8 +250,8 @@ func TestHealthyFullStackUsageSnapshot(t *testing.T) {
 	err = json.NewDecoder(resp.Body).Decode(&usageResponses)
 	require.NoError(t, err)
 
-	// We should get 5 accounts (one per provider)
-	assert.Len(t, usageResponses, 5, "expected 5 accounts")
+	// We should get 4 accounts (one per provider)
+	assert.Len(t, usageResponses, 4, "expected 4 accounts")
 
 	// Build a map by platform for easier assertions
 	accounts := make(map[string]map[string]interface{})
@@ -310,7 +262,7 @@ func TestHealthyFullStackUsageSnapshot(t *testing.T) {
 	}
 
 	// Verify each provider exists and is healthy
-	expectedProviders := []string{"codex", "kimi", "minimax", "zai", "zhipu"}
+	expectedProviders := []string{"kimi", "minimax", "zai", "zhipu"}
 	for _, prov := range expectedProviders {
 		account, ok := accounts[prov]
 		require.True(t, ok, "expected provider %q in response", prov)
@@ -341,12 +293,6 @@ func TestHealthyFullStackUsageSnapshot(t *testing.T) {
 		tierData := quotas[tier].(map[string]interface{})
 		return tierData["used"].(float64)
 	}
-
-	// Codex: adapter consumes upstream used_percent directly via int64(pct) truncation.
-	// Fixture: 5H=45.5, 1W=20.0, 1M=10.0
-	assert.Equal(t, float64(45), getUsed("codex", "5H"), "codex 5H: int64(used_percent=45.5)")
-	assert.Equal(t, float64(20), getUsed("codex", "1W"), "codex 1W: int64(used_percent=20)")
-	assert.Equal(t, float64(10), getUsed("codex", "1M"), "codex 1M: int64(used_percent=10)")
 
 	// Kimi: adapter computes used = NormalizeToPercent(limit - remaining, limit).
 	// Fixture 5H: limit=1000, remaining=600 -> used%=40.  1W: limit=5000, remaining=3500 -> used%=30.

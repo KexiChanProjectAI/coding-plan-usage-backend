@@ -226,8 +226,8 @@ func TestHandler(t *testing.T) {
 
 	resetTime := time.Now().Add(5 * time.Hour)
 	snapshot := domain.AccountSnapshot{
-		Platform:     "codex",
-		AccountAlias: "codex-account",
+		Platform:     "kimi",
+		AccountAlias: "kimi-account",
 		Quotas: map[domain.Tier]domain.QuotaTier{
 			domain.Tier5H: {Used: 5, Total: 50, ResetAt: resetTime},
 		},
@@ -249,8 +249,8 @@ func TestHandler(t *testing.T) {
 
 	expectedStrings := []string{
 		"coding_plan_usage_value",
-		`platform="codex"`,
-		`account="codex-account"`,
+		`platform="kimi"`,
+		`account="kimi-account"`,
 		`tier="5H"`,
 		`type="used"`,
 		`type="total"`,
@@ -304,8 +304,8 @@ func TestUpdateFromSnapshotIgnoresUnsupportedTiers(t *testing.T) {
 		Platform:     "test",
 		AccountAlias: "test-account",
 		Quotas: map[domain.Tier]domain.QuotaTier{
-			domain.Tier5H:      {Used: 10, Total: 100, ResetAt: resetTime},
-			unsupportedTier:   {Used: 999, Total: 999, ResetAt: resetTime},
+			domain.Tier5H:   {Used: 10, Total: 100, ResetAt: resetTime},
+			unsupportedTier: {Used: 999, Total: 999, ResetAt: resetTime},
 		},
 		Version: 1,
 	}

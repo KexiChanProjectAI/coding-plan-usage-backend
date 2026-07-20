@@ -12,8 +12,8 @@ import (
 
 // Config represents the application configuration.
 type Config struct {
-	Server   ServerConfig             `yaml:"server"`
-	Global   GlobalConfig             `yaml:"global"`
+	Server    ServerConfig              `yaml:"server"`
+	Global    GlobalConfig              `yaml:"global"`
 	Providers map[string]ProviderConfig `yaml:"providers"`
 }
 
@@ -34,23 +34,21 @@ type GlobalConfig struct {
 
 // ProviderConfig holds provider-specific settings.
 type ProviderConfig struct {
-	Type            string          `yaml:"type"`              // Provider type (codex, kimi, minimax, zai, zhipu, sub2api)
-	Name            string          `yaml:"name"`              // Human-readable alias (kept for backward compat)
-	BaseURL         string          `yaml:"base_url"`
-	Token           string          `yaml:"token"`
-	RefreshInterval time.Duration   `yaml:"refresh_interval"`
-	JitterPercent   int             `yaml:"jitter_percent"`
-	BackoffInitial  time.Duration   `yaml:"backoff_initial"`
-	BackoffMax      time.Duration   `yaml:"backoff_max"`
+	Type            string        `yaml:"type"` // Provider type (kimi, minimax, zai, zhipu)
+	Name            string        `yaml:"name"` // Human-readable alias (kept for backward compat)
+	BaseURL         string        `yaml:"base_url"`
+	Token           string        `yaml:"token"`
+	RefreshInterval time.Duration `yaml:"refresh_interval"`
+	JitterPercent   int           `yaml:"jitter_percent"`
+	BackoffInitial  time.Duration `yaml:"backoff_initial"`
+	BackoffMax      time.Duration `yaml:"backoff_max"`
 }
 
 var validProviderTypes = map[string]bool{
-	"codex":   true,
 	"kimi":    true,
 	"minimax": true,
 	"zai":     true,
 	"zhipu":   true,
-	"sub2api": true,
 }
 
 // Validate checks that all required fields are present.
@@ -61,7 +59,7 @@ func (c *Config) Validate() error {
 		}
 		// If Type is not specified, fall back to config key for backward compatibility
 		if prov.Type != "" && !validProviderTypes[strings.ToLower(prov.Type)] {
-			return fmt.Errorf("provider %q has unknown type %q (valid types: codex, kimi, minimax, zai, zhipu, sub2api)", name, prov.Type)
+			return fmt.Errorf("provider %q has unknown type %q (valid types: kimi, minimax, zai, zhipu)", name, prov.Type)
 		}
 	}
 	return nil
