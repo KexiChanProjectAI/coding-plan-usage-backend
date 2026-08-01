@@ -18,12 +18,12 @@ func TestFetchQuotaSuccess(t *testing.T) {
 	server.SetResponse("/v1/api/openplatform/coding_plan/remains", http.StatusOK, map[string]interface{}{
 		"model_remains": []map[string]interface{}{
 			{
-				"start_time":                  1745164800000,
-				"end_time":                    1745186400000,
-				"remains_time":                21600000,
+				"start_time":                   1745164800000,
+				"end_time":                     1745186400000,
+				"remains_time":                 21600000,
 				"current_interval_total_count": 100,
 				"current_interval_usage_count": 30,
-				"model_name":                  "coding-plan-MiniMax-M2",
+				"model_name":                   "general",
 				"current_weekly_total_count":   500,
 				"current_weekly_usage_count":   150,
 				"weekly_start_time":            1744560000000,
@@ -94,7 +94,7 @@ func TestCurrentIntervalUsageCountMeansRemaining(t *testing.T) {
 				"current_weekly_total_count":   0,
 				"current_weekly_usage_count":   0,
 				"end_time":                     1745186400000,
-				"model_name":                   "coding-plan-test",
+				"model_name":                   "general",
 			},
 		},
 		"base_resp": map[string]interface{}{
@@ -137,7 +137,7 @@ func TestWeeklyQuotaOmittedWhenZero(t *testing.T) {
 				"current_weekly_usage_count":   0,
 				"end_time":                     1745186400000,
 				"weekly_end_time":              1745164800000,
-				"model_name":                   "coding-plan-test",
+				"model_name":                   "general",
 			},
 		},
 		"base_resp": map[string]interface{}{
@@ -310,7 +310,7 @@ func TestMultipleModelRemains(t *testing.T) {
 				"current_weekly_total_count":   0,
 				"current_weekly_usage_count":   0,
 				"end_time":                     1745186400000,
-				"model_name":                   "coding-plan-model1",
+				"model_name":                   "video",
 			},
 			{
 				"current_interval_total_count": 200,
@@ -319,7 +319,7 @@ func TestMultipleModelRemains(t *testing.T) {
 				"current_weekly_usage_count":   300,
 				"end_time":                     1745186400000,
 				"weekly_end_time":              1745164800000,
-				"model_name":                   "coding-plan-model2",
+				"model_name":                   "general",
 			},
 		},
 		"base_resp": map[string]interface{}{
@@ -339,9 +339,9 @@ func TestMultipleModelRemains(t *testing.T) {
 	if !has5H {
 		t.Fatal("expected 5H tier to be present")
 	}
-	// Highest 5H percent: model1 (80/100) = 80%, model2 (100/200) = 50%
-	if tier5H.Used != 80 {
-		t.Errorf("expected 5H used 80 (highest of 80%% and 50%%), got %d", tier5H.Used)
+	// Only the "general" model should be considered; general 5H = 100/200 = 50%
+	if tier5H.Used != 50 {
+		t.Errorf("expected 5H used 50 (general only), got %d", tier5H.Used)
 	}
 	if tier5H.Total != 100 {
 		t.Errorf("expected 5H total 100, got %d", tier5H.Total)
@@ -351,7 +351,7 @@ func TestMultipleModelRemains(t *testing.T) {
 	if !has1W {
 		t.Fatal("expected 1W tier to be present since at least one model has weekly quota")
 	}
-	// Highest 1W percent: model2 (700/1000) = 70%
+	// Only the "general" model should be considered; general 1W = 700/1000 = 70%
 	if tier1W.Used != 70 {
 		t.Errorf("expected 1W used 70, got %d", tier1W.Used)
 	}
@@ -385,7 +385,7 @@ func TestAllModelsProcessed(t *testing.T) {
 				"current_weekly_usage_count":   250,
 				"end_time":                     1745186400000,
 				"weekly_end_time":              1745164800000,
-				"model_name":                   "MiniMax-M2",
+				"model_name":                   "general",
 			},
 		},
 		"base_resp": map[string]interface{}{
@@ -440,7 +440,7 @@ func TestResetAtSetForValidTiers(t *testing.T) {
 				"current_weekly_usage_count":   150,
 				"end_time":                     endTime,
 				"weekly_end_time":              weeklyEndTime,
-				"model_name":                   "coding-plan-test",
+				"model_name":                   "general",
 			},
 		},
 		"base_resp": map[string]interface{}{
@@ -488,5 +488,67 @@ func TestResetAtSetForValidTiers(t *testing.T) {
 	}
 	if !tier1W.ResetAt.Equal(time.UnixMilli(weeklyEndTime)) {
 		t.Errorf("expected 1W reset_at %v, got %v", time.UnixMilli(weeklyEndTime), tier1W.ResetAt)
+	}
+}
+
+func TestGeneralRemainingPercentTakesPrecedence(t *testing.T) {
+	server := httpmock.New()
+	defer server.Close()
+
+	server.SetResponse("/v1/api/openplatform/coding_plan/remains", http.StatusOK, map[string]interface{}{
+		"model_remains": []map[string]interface{}{
+			{
+				"start_time":                         1745164800000,
+				"end_time":                           1745186400000,
+				"remains_time":                       21600000,
+				"current_interval_total_count":       0,
+				"current_interval_usage_count":       0,
+				"current_interval_remaining_percent": 99,
+				"model_name":                         "general",
+				"current_weekly_total_count":         0,
+				"current_weekly_usage_count":         0,
+				"current_weekly_remaining_percent":   95,
+				"weekly_start_time":                  1744560000000,
+				"weekly_end_time":                    1745164800000,
+				"weekly_remains_time":                604800000,
+			},
+			{
+				"current_interval_total_count": 3,
+				"current_interval_usage_count": 3,
+				"model_name":                   "video",
+			},
+		},
+		"base_resp": map[string]interface{}{
+			"status_code": 0,
+			"status_msg":  "success",
+		},
+	})
+
+	adapter := New("minimax", server.URL(), "test-token")
+	snapshot, err := adapter.Fetch(context.Background())
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	tier5H, ok := snapshot.Quotas[domain.Tier5H]
+	if !ok {
+		t.Fatal("expected 5H tier to be present")
+	}
+	if tier5H.Used != 1 {
+		t.Errorf("expected 5H used 1 (100 - 99 remaining), got %d", tier5H.Used)
+	}
+	if tier5H.Total != 100 {
+		t.Errorf("expected 5H total 100, got %d", tier5H.Total)
+	}
+
+	tier1W, ok := snapshot.Quotas[domain.Tier1W]
+	if !ok {
+		t.Fatal("expected 1W tier to be present")
+	}
+	if tier1W.Used != 5 {
+		t.Errorf("expected 1W used 5 (100 - 95 remaining), got %d", tier1W.Used)
+	}
+	if tier1W.Total != 100 {
+		t.Errorf("expected 1W total 100, got %d", tier1W.Total)
 	}
 }
