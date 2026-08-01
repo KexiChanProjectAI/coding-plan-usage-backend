@@ -105,9 +105,11 @@ GET v1/api/openplatform/coding_plan/remains
       "remains_time": "long (epoch ms)",
       "current_interval_total_count": "int",
       "current_interval_usage_count": "int",
+      "current_interval_remaining_percent": "int (0-100, optional)",
       "model_name": "string",
       "current_weekly_total_count": "int",
       "current_weekly_usage_count": "int",
+      "current_weekly_remaining_percent": "int (0-100, optional)",
       "weekly_start_time": "long (epoch ms)",
       "weekly_end_time": "long (epoch ms)",
       "weekly_remains_time": "long (epoch ms)"
@@ -122,8 +124,9 @@ GET v1/api/openplatform/coding_plan/remains
 
 ### Notes
 - `base_resp.status_code` must be `0` for success.
-- `current_interval_usage_count` actually represents the **remaining** count (naming quirk in the API).
-- `model_name` examples: `MiniMax-M*`, `coding-plan-vlm`, `coding-plan-search`.
+- Only the model with `model_name == "general"` is considered; other models (e.g. `video`) are ignored.
+- When `current_interval_remaining_percent` / `current_weekly_remaining_percent` are present, they take precedence and are converted to used percentage as `100 - remaining_percent`.
+- As a fallback, `current_interval_usage_count` / `current_weekly_usage_count` are treated as the **remaining** count (naming quirk in the API), and used percentage is computed as `(total_count - usage_count) / total_count * 100`.
 - Weekly fields may be `0` when there is no weekly quota for that model.
 
 ---
