@@ -75,7 +75,7 @@ func TestHealthyFullStackUsageSnapshot(t *testing.T) {
 				"end_time":                     now.Add(4 * time.Hour).UnixMilli(),
 				"current_interval_total_count": 1000,
 				"current_interval_usage_count": 700, // remaining = 700, used = 300
-				"model_name":                   "coding-plan-02",
+				"model_name":                   "general",
 				"current_weekly_total_count":   5000,
 				"current_weekly_usage_count":   2000, // remaining = 2000, used = 3000
 				"weekly_start_time":            now.Add(-7 * 24 * time.Hour).UnixMilli(),
