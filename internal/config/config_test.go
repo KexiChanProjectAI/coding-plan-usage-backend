@@ -37,6 +37,7 @@ providers:
 		t.Fatalf("failed to write temp config: %v", err)
 	}
 
+	os.Setenv("UCPQA_HOST", "127.0.0.1")
 	os.Setenv("UCPQA_API_PORT", "8888")
 	os.Setenv("UCPQA_METRICS_PORT", "9999")
 	os.Setenv("UCPQA_MAX_STALE_DURATION", "15m")
@@ -47,6 +48,7 @@ providers:
 	os.Setenv("UCPQA_CORS_ALLOWED_METHODS", "GET,OPTIONS")
 	os.Setenv("UCPQA_CORS_ALLOWED_HEADERS", "Content-Type,Authorization")
 	defer func() {
+		os.Unsetenv("UCPQA_HOST")
 		os.Unsetenv("UCPQA_API_PORT")
 		os.Unsetenv("UCPQA_METRICS_PORT")
 		os.Unsetenv("UCPQA_MAX_STALE_DURATION")
@@ -63,6 +65,9 @@ providers:
 		t.Fatalf("Load failed: %v", err)
 	}
 
+	if cfg.Server.Host != "127.0.0.1" {
+		t.Errorf("Host: got %q, want 127.0.0.1", cfg.Server.Host)
+	}
 	if cfg.Server.APIPort != 8888 {
 		t.Errorf("APIPort: got %d, want 8888", cfg.Server.APIPort)
 	}

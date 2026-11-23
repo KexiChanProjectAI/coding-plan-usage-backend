@@ -19,6 +19,8 @@ type Config struct {
 
 // ServerConfig holds HTTP server settings.
 type ServerConfig struct {
+	// Host is the address both servers listen on. Empty means all interfaces.
+	Host               string   `yaml:"host"`
 	APIPort            int      `yaml:"api_port"`
 	MetricsPort        int      `yaml:"metrics_port"`
 	CorsEnabled        bool     `yaml:"cors_enabled"`
@@ -97,6 +99,9 @@ func Load(configPath string, defaultPath string) (*Config, error) {
 // Environment variables use the prefix "UCPQA_" followed by the config path.
 func applyEnvOverrides(cfg *Config) {
 	// Server config
+	if v := os.Getenv("UCPQA_HOST"); v != "" {
+		cfg.Server.Host = v
+	}
 	if v := os.Getenv("UCPQA_API_PORT"); v != "" {
 		if port, err := strconv.Atoi(v); err == nil {
 			cfg.Server.APIPort = port

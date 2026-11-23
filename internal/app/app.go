@@ -7,9 +7,11 @@ import (
 	"io"
 	"io/fs"
 	"log"
+	"net"
 	"net/http"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -156,9 +158,15 @@ func (b *Builder) buildAPIServer(usageHandler *api.UsageHandler, sseHandler *sse
 	}
 
 	return &http.Server{
-		Addr:    fmt.Sprintf(":%d", b.Config.Server.APIPort),
+		Addr:    listenAddr(b.Config.Server.Host, b.Config.Server.APIPort),
 		Handler: router,
 	}
+}
+
+// listenAddr joins the configured host and port. An empty host keeps the
+// previous behaviour of listening on all interfaces (":port").
+func listenAddr(host string, port int) string {
+	return net.JoinHostPort(host, strconv.Itoa(port))
 }
 
 func registerSPARoutes(router *gin.Engine, distFS fs.FS) {
@@ -257,7 +265,7 @@ func (b *Builder) buildMetricsServer() *http.Server {
 	})
 
 	return &http.Server{
-		Addr:    fmt.Sprintf(":%d", b.Config.Server.MetricsPort),
+		Addr:    listenAddr(b.Config.Server.Host, b.Config.Server.MetricsPort),
 		Handler: router,
 	}
 }

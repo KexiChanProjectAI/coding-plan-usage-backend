@@ -2,6 +2,7 @@
 # See README.md for full documentation
 
 server:
+  # host: 127.0.0.1     # Listen address for both servers (default: all interfaces)
   api_port: 8080        # API server port (REST, SSE, WebSocket)
   metrics_port: 9090    # Prometheus metrics server port
   # CORS configuration for cross-origin frontend access

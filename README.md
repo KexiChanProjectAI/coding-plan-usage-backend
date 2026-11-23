@@ -62,6 +62,7 @@ Reference `configs/config.yaml` for a full example. Every provider requires a va
 
 ```yaml
 server:
+  host: ""              # Listen address for both servers; empty = all interfaces, e.g. 127.0.0.1
   api_port: 8080        # API + SSE + WS server port
   metrics_port: 9090    # Prometheus metrics server port
 
@@ -158,6 +159,7 @@ The config key (`minimax-work`, `minimax-personal`) is the unique identifier/ali
 All configuration values can be overridden via environment variables:
 
 - `UCPQA_CONFIG_PATH` — Config file path
+- `UCPQA_HOST` — Override server.host
 - `UCPQA_API_PORT` — Override server.api_port
 - `UCPQA_METRICS_PORT` — Override server.metrics_port
 - `UCPQA_MAX_STALE_DURATION` — Override global.max_stale_duration (Go duration format, e.g. "10m")
