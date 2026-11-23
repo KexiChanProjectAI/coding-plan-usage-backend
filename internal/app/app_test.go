@@ -508,3 +508,20 @@ func TestCompositionRunAndStop(t *testing.T) {
 		t.Errorf("Run() error: %v", err)
 	}
 }
+
+func TestListenAddr(t *testing.T) {
+	cases := []struct {
+		host string
+		port int
+		want string
+	}{
+		{"", 8080, ":8080"},
+		{"127.0.0.1", 18080, "127.0.0.1:18080"},
+		{"::1", 19090, "[::1]:19090"},
+	}
+	for _, c := range cases {
+		if got := listenAddr(c.host, c.port); got != c.want {
+			t.Errorf("listenAddr(%q, %d) = %q, want %q", c.host, c.port, got, c.want)
+		}
+	}
+}
